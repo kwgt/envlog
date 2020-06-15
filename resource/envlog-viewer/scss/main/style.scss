@@ -1,0 +1,65 @@
+@charset "UTF-8";
+@import "../../../common/scss/abort_shield.scss";
+
+body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+table#sensor-table > thead {
+  th.sensor-num {
+    width: 1rem;
+  }
+
+  th.sensor-id {
+    width: 12rem;
+  }
+
+  th.regist-date {
+    width: 12rem;
+  }
+
+  th.sensor-state {
+    width: 6rem;
+  }
+
+  th.sensor-description {
+  }
+}
+
+table#sensor-table > tbody {
+  counter-reset: sensor-num 0;
+
+
+  td.sensor-num:before {
+    content: counter(sensor-num);
+  }
+
+  td.sensor-num {
+    counter-increment: sensor-num;
+    width: 1rem;
+  }
+
+  td.sensor-id {
+    font-family: "Roboto mono";
+    display: inline-block;
+    width: 12rem;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  td.regist-date {
+    font-family: Roboto;
+    width: 12rem;
+  }
+
+  td.sensor-state {
+    width: 6rem;
+  }
+
+  td.sensor-description {
+    font-family: Roboto;
+  }
+}

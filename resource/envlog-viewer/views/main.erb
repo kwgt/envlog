@@ -1,0 +1,39 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>SENSOR LIST</title>
+
+      <% if not $develop_mode %>
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Cache-Control" content="no-cache">
+        <meta http-equiv="Expires" content="-1">
+      <% end %>
+    </meta>
+
+    <script type="text/javascript" src="/js/jquery-3.5.1.min.js"></script>
+    <script type="text/javascript" src="/js/const.js"></script>
+    <script type="text/javascript" src="/js/util.js"></script>
+    <script type="text/javascript" src="/js/main.js"></script>
+  </head>
+
+  <body class="main-screen">
+    <div>
+      <table id="sensor-table" class="table">
+        <thead class="thead-dark">
+          <tr>
+            <th class="sensor-num" scope="col">#</th>
+            <th class="sensor-id" scope="col">ID</th>
+            <th class="regist-date" scope="col">REGIST</th>
+            <th class="sensor-state" scope="col">STATE</th>
+            <th class="sensor-description" scope="col">DESCRIPTION</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+
+    <%= render :erb, :"../../common/views/abort_shield" %>
+  </body>
+</html>
+

@@ -1,0 +1,307 @@
+CONFIG:
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    コンフィギュレーションデータの構造です。
+  type: object
+  required:
+    - database
+    - source
+    - webserver
+
+  properties:
+    #
+    # データベースアクセス情報
+    #
+    database:
+      oneOf:
+        - description: >-
+            SQLite3を使用する場合のコンフィギュレーションを記述します
+          type: object
+          required:
+            - sqlite3
+          properties:
+            sqlite3:
+              type: object
+              required:
+                - path
+              properties:
+                path:
+                  description: >-
+                    データベースファイルのパスを記述します。
+                  type: string
+              additionalProperties: false
+          additionalProperties: false
+
+        - description: >-
+            MySQL(MariaDB)を使用する場合のコンフィギュレーションを記述します
+          type: object
+          required:
+            - mariadb
+          properties:
+            mariadb:
+              type: object
+              required:
+                - host
+                - username
+                - password
+                - database
+
+              properties:
+                host:
+                  description: >-
+                    サーバのアドレスを記述します。
+                  type: string
+
+                username:
+                  description: >-
+                    サーバにアクセスする際のユーザ名を記述します。
+                  type: string
+
+                password:
+                  description: >-
+                    サーバにアクセスする際のパスワードを記述します。
+                  type: string
+
+                database:
+                  description: >-
+                    使用するデータベースの名前を記述します。
+                  type: string
+
+                encoding:
+                  description: >-
+                    接続時のエンコーディングを指定します。
+                  type: string
+
+              additionalProperties: false
+
+          additionalProperties: false
+
+    #
+    # loggerのデータの入力ソースの定義
+    #
+    source:
+      type: array
+      items:
+        - description: >-
+            入力ソースにシリアルポートを指定する場合の設定情報を記述します。
+          type: object
+          required:
+            - type
+            - port
+            - baud
+            - data_bits
+
+          properties:
+            type:
+              description: >-
+                入力ソース種別を記述します
+                ※シリアルポート入力の場合は"serial"を指定
+              cost: "serial"
+
+            port:
+              description: >-
+                シリアルのデバイスファイル名を指定します(/dev/ttyUSB0等)
+              type: string
+
+            baud:
+              description: >-
+                シリアルの転送速度を指定します(bps)
+              type: integer
+              minimum: 300
+              maximum: 115200
+
+            data_bits:
+              description: >-
+                データビット幅を指定します。
+              type: integer
+              enum: [7, 8]
+          additionalProperties: false
+
+        - description: >-
+            入力ソースにUDPを指定する場合の設定情報を記述します。
+          type: object
+          required:
+            - type
+            - port
+
+          properties:
+            type:
+              description: >-
+                入力ソース種別を記述します
+                ※UDP力の場合は"udp"を指定
+              cost: "udp"
+
+            bind:
+              description: >-
+                UDPの待ち受けアドレスを指定します。
+                ※省略した場合は::/0で待ち受けます
+              type: string
+            port:
+              description: >-
+                UDPの待ち受けポートを指定します。
+              type: integer
+          additionalProperties: false
+
+      minItems: 1
+
+    #
+    # viewerのwebサーバの設定
+    #
+    webserver:
+      required:
+        - bind
+        - port
+
+      properties:
+        bind:
+          description: >-
+            待ち受けアドレスの記述を行います。
+          type: string
+
+        port:
+          description: >-
+            待ち受けポートの記述を行います。
+          type: object
+          required:
+            - http
+            - ws
+          properties:
+            http:
+              description: >-
+                HTTPの待ち受けポートを記述します。
+              type: integer
+              minimum: 1024
+              maximum: 32000
+            ws:
+              description: >-
+                WebSocketの待ち受けポートを記述します。
+              type: integer
+              minimum: 1024
+              maximum: 32000
+          additionalProperties: false
+
+        tls:
+          description: >-
+            TSL設定を記述します。
+            ※この項目を省略した場合はTSLを使用しません
+          type: object
+          required:
+            - cert
+            - key
+
+          properties:
+            cert:
+              description: >-
+                証明書ファイルのパスを記述します。
+              type: string
+
+            key:
+              description: >-
+                サーバ鍵ファイルのパスを記述します。
+              type: string
+
+          additionalProperties: false
+
+        auth:
+          description: >-
+            ダイジェスト認証に使用するパスワードファイルのパスを指定します。
+            ※この項目を省略した場合はダイジェスト認証を行いません
+          type: string
+
+      additionalProperties: false
+
+    #
+    # ログファイル設定
+    #
+    log:
+      type: object
+      properties:
+        file:
+          type: string
+
+        shift_age:
+          oneOf:
+            - type: string
+              enum: ["daily", "weekly", "monthly"]
+            - type: integer  # 日数として評価
+
+        shift_size:
+          type: integer
+
+        level:
+          type: string
+          enum: ["UNKNOWN", "FATAL", "ERROR", "WARN", "INFO", "DEBUG"]
+
+      additionalProperties: false
+
+  additionalProperties: false
+
+INPUT_DATA:
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    センサーゲートウェイからの入力データのデータ構造です。
+  type: object
+  required:
+    - addr
+    - seq
+    - temp
+    - hum
+    - a/p
+    - rssi
+    - vbat
+    - vbus
+  properties:
+    addr:
+      description: >-
+        センサーのアドレス情報が格納されます。
+      type: string
+
+    seq:
+      description: >-
+        パケットのシーケンス番号が格納されます。
+      type: integer
+
+    temp:
+      description: >-
+        気温データ(摂氏)格納されます。
+        ※現時点ではDHT12の計測範囲を受け付けます
+      type: number
+      minimum: -20.0
+      maximum: 60.0
+
+    hum:
+      description: >-
+        湿度データが(%RH)で格納されます。
+        ※現時点ではDHT12の計測範囲を受け付けます
+      type: number
+      minimum: 20
+      maximum: 95
+
+    a/p:
+      description: >-
+        気圧データ(hPa)で格納されます。
+        ※現時点ではBME280の計測範囲を受け付けます
+      type: integer
+      minimum: 300
+      maximum: 1100
+
+    rssi:
+      description: >-
+        センサーからの信号の受信強度が格納されます。
+      type: integer
+
+    vbat:
+      description: >-
+        センサー内蔵のバッテリーの電圧が格納されます。
+      type: number
+      minimum: 3.0
+      maximum: 5.0
+
+    vbus:
+      description: >-
+        センサー内蔵のバッテリーの電圧が格納されます。
+      type: number
+      minimum: 0.0
+      maximum: 10.0
+
+  additionalProperties: false

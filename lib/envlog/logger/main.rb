@@ -1,0 +1,21 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+
+#
+# Environemnt data logger 
+#
+#   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+#
+
+module EnvLog
+  module Logger
+    class << self
+      def start
+        $logger.info("main") {"start logger"}
+
+        CONFIG["source"].each {|src| InputSource.add_source(src)}
+        InputSource.wait
+      end
+    end
+  end
+end

@@ -1,0 +1,46 @@
+@charset "UTF-8";
+@import "../../../common/scss/abort_shield.scss";
+
+body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+div#result {
+  div.label {
+    font-size: 5vw;
+    font-weight: 700;
+    width: 20%;
+  }
+
+  div.value {
+    width: 30%;
+
+    span.number {
+      display: inline-block;
+      width: 10rem;
+      font-size: 5vw;
+      font-family: "Roboto mono";
+    }
+
+    span.unit {
+      font-size: 2vw;
+    }
+  }
+}
+
+div#temp-graph {
+  width: 100%;
+  height: 30vw;
+}
+
+div#hum-graph {
+  width: 100%;
+  height: 30vw;
+}
+
+div#air-graph {
+  width: 100%;
+  height: 30vw;
+}

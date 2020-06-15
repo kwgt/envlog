@@ -1,0 +1,89 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+
+require 'pathname'
+require 'optparse'
+require 'yaml'
+require 'sqlite3'
+
+BASE_DIR = Pathname.new(File.expand_path(__FILE__)).dirname.parent.parent
+DATA_DIR = BASE_DIR + "data"
+LIB_DIR  = BASE_DIR + "lib" + "envlog"
+
+require "#{LIB_DIR + "version"}"
+require "#{LIB_DIR + "misc"}"
+require "#{LIB_DIR + "schema"}"
+require "#{LIB_DIR + "config"}"
+
+OptionParser.new { |opt|
+  opt.version = EnvLog::VERSION;
+
+  opt.on("-c FILE", "--config-file=FILE") { |file|
+    $config_file = file
+  }
+
+  opt.parse!(ARGV)
+
+  raise("configuration file is not specified.") if not $config_file
+}
+
+SCHEMA = EnvLog::Schema.read(DATA_DIR + "schema.yml")
+CONFIG = EnvLog::Config.read($config_file)
+
+if CONFIG["database"].include?("sqlite3")
+  db_path = EnvLog::Config.fetch_path("database", "sqlite3", "path")
+else
+  raise("SQLite3 configuration is not specified")
+end
+
+begin
+  db = SQLite3::Database.new(db_path.to_s)
+
+  db.transaction
+
+  #
+  # センサー定義テーブル
+  #
+  db.execute(<<~EOQ)
+    create table if not exists SENSOR_TABLE (
+      addr         text unique,  /* センサー番号(NULLの場合は撤去済み) */
+      id           text unique,  /* センサーID (UUID)                  */
+      ctime        timestamp,    /* 登録日時                           */
+      mtime        timestamp,    /* 更新日時                           */
+      descr        text,         /* 端末概要                           */
+      `pow-source` text,         /* 外部電源の種別                     */
+      state        text,         /* 状態                               */
+      `last-seq`   integer,      /* 最終シーケンス番号                 */
+
+      primary key (id)
+    ); 
+  EOQ
+
+  #
+  # 環境センサーのデータを蓄積するテーブル
+  #
+  db.execute(<<~EOQ)
+    create table if not exists DATA_TABLE (
+      sensor     text,         /* センサーID (UUID)                  */
+      time       timestamp,    /* 記録日時                           */
+      temp       numeric,      /* 気温                               */
+      humidity   numeric,      /* 湿度                               */
+      `air-pres` numeric,      /* 気圧                               */
+      rssi       integer,      /* 計測時のRSSI                       */
+      vbat       numeric,      /* 計測時の電池電圧                   */
+      vbus       numeric,      /* 計測時の外部電源電圧               */
+
+      primary key (time, sensor)
+    );
+  EOQ
+
+  db.commit
+
+rescue => e
+  p e
+  pp e.backtrace
+  db.rollback
+
+ensure
+  db&.close
+end

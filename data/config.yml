@@ -1,0 +1,53 @@
+#
+# データベースへのアクセス設定
+#
+database:
+  sqlite3:
+    path:     ~/lib/envlog.db
+
+  #mariadb:
+  #  host:     db3.local
+  #  username: envlog
+  #  password: S1H9-P64A-KUO6
+  #  database: envlog.db
+  #  encoding: utf8
+
+#
+# loggerのデータの入力ソース設定
+# ※envlog-loggerのみ参照します
+#
+source:
+  - type:      serial
+    port:      /dev/ttyUSB0
+    baud:      115200
+    data_bits: 8
+
+  #- type: udp
+  #  port: 1234
+
+#
+# viewerのwebサーバの設定
+# ※envlog-viewerのみ参照します
+#
+webserver:
+  bind:        "::/0"
+  port:       
+    http:      2564
+    ws:        2565
+
+  #この項目を定義した場合はHTTPSでサービスを行います
+  #tls:
+  #  cert:      ~/lib/envlog/server.crt
+  #  key:       ~/lib/envlog/server.key
+
+  #この項目を定義した場合はダイジェスト認証による認証を行います
+  #auth:        ~/lib/envlog/passwd.yml
+
+#
+# ログ出力設定
+#
+log:
+  file:        log.txt
+  shift_age:   weekly
+  shift_size:  100_000
+  level:       INFO

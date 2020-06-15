@@ -1,0 +1,91 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+
+#
+# Environemnt data logger 
+#
+#   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+#
+
+require 'pathname'
+require 'optparse'
+
+Thread.abort_on_exception = true
+
+#
+# アプリ全体で参照する定数の定義
+#
+APP_NAME    = "envlog-logger"
+
+BASE_DIR    = Pathname.new(File.expand_path(__FILE__)).dirname.parent
+DATA_DIR    = BASE_DIR + "data"
+LIB_DIR     = BASE_DIR + "lib" + "envlog"
+APP_LIB_DIR = LIB_DIR + "logger"
+
+#
+# 共通ライブラリの読み込み
+#
+require "#{LIB_DIR}/version"
+require "#{LIB_DIR}/misc"
+require "#{LIB_DIR}/config"
+require "#{LIB_DIR}/schema"
+require "#{LIB_DIR}/log"
+
+#
+# コマンドラインオプションの評価
+#
+OptionParser.new { |opt|
+  opt.version = EnvLog::VERSION
+  opt.banner += "[options]"
+
+  opt.on("-c FILE", "--config-file=FILE") { |file|
+    $config_file = file
+  }
+
+  opt.on("-s", "--dump-config-template") {
+    $dump_config = true
+  }
+
+  opt.parse!(ARGV)
+}
+
+if not ($config_file or $dump_config)
+  STDERR.print("configuration file is not specified\n")
+  exit 1
+end
+
+#
+# サンプルのコンフィギュレーションを表示する場合は # 即終了
+#
+if $dump_config
+  STDOUT.print(IO.read(DATA_DIR + "config.yml"))
+  exit
+end
+
+#
+# スキーマの読み込み
+#
+SCHEMA  = EnvLog::Schema.read(DATA_DIR + "schema.yml") 
+
+#
+# コンフィギュレーションの読み込み
+# ※エラーが検出された場合は読み込みメソッド内でプロセス終了
+#
+CONFIG  = EnvLog::Config.read($config_file)
+
+#
+# ロガーオブジェクトの生成
+#
+$logger = EnvLog::Log.open()
+
+#
+# アプリ固有ライブラリの読み込み
+#
+require "#{APP_LIB_DIR + "main"}"
+require "#{APP_LIB_DIR + "db"}"
+require "#{APP_LIB_DIR + "input"}"
+
+#
+# アプリを起動
+#
+EnvLog::Logger.start

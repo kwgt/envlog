@@ -1,0 +1,57 @@
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>SENSOR RESULT</title>
+
+      <% if not $develop_mode %>
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Cache-Control" content="no-cache">
+        <meta http-equiv="Expires" content="-1">
+      <% end %>
+    </meta>
+
+    <script type="text/javascript" src="/js/jquery-3.5.1.min.js"></script>
+    <script type="text/javascript" src="/js/const.js"></script>
+    <script type="text/javascript" src="/js/util.js"></script>
+    <script type="text/javascript" src="/js/sensor.js"></script>
+  </head>
+
+  <body class="sensor-result">
+    <div class="pt-5">
+      <div class="mx-auto col-11">
+        <h2>現在の測定値</h2>
+        <div id="result" class="d-flex flex-column mt-4">
+          <div id="temperature" class="d-flex flex-row justify-content-center">
+            <div class="label">気温</div>
+            <div class="value">
+              <span class="number text-right"></span>
+              <span class="unit">&#x00B0;C</span>
+            </div>
+          </div>
+          <div id="humidity" class="d-flex flex-row justify-content-center">
+            <div class="label">湿度</div>
+            <div class="value">
+              <span class="number text-right"></span>
+              <span class="unit">&#x0025;</span>
+            </div>
+          </div>
+          <div id="air-pressure" class="d-flex flex-row justify-content-center">
+            <div class="label">気圧</div>
+            <div class="value">
+              <span class="number text-right"></span>
+              <span class="unit">hPa</span>
+            </div>
+          </div>
+        </div>
+
+        <h2>グラフ</h2>
+        <div id="temp-graph"></div>
+        <div id="hum-graph"></div>
+        <div id="air-graph"></div>
+      </div>
+    </div>
+
+    <%= render :erb, :"../../common/views/abort_shield" %>
+  </body>
+</html>
+

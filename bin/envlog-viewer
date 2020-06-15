@@ -1,0 +1,118 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+
+#
+# Environemnt data logger 
+#
+#   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+#
+
+require 'pathname'
+require 'optparse'
+
+Thread.abort_on_exception = true
+
+#
+# アプリ全体で参照する定数の定義
+#
+TRADITIONAL_NAME = "Environment data viewer"
+APP_NAME         = "envlog-viewer"
+                
+BASE_DIR         = Pathname.new(File.expand_path(__FILE__)).dirname.parent
+DATA_DIR         = BASE_DIR + "data"
+LIB_DIR          = BASE_DIR + "lib" + "envlog"
+APP_LIB_DIR      = LIB_DIR + "viewer"
+RESOURCE_DIR     = BASE_DIR + "resource"
+APP_RESOURCE_DIR = BASE_DIR + "resource" + APP_NAME
+
+#
+# 共通ライブラリの読み込み
+#
+require "#{LIB_DIR}/version"
+require "#{LIB_DIR}/misc"
+require "#{LIB_DIR}/config"
+require "#{LIB_DIR}/schema"
+require "#{LIB_DIR}/log"
+
+#
+# コマンドラインオプションの評価
+#
+OptionParser.new { |opt|
+  opt.version = EnvLog::VERSION
+  opt.banner += "[options]"
+
+  opt.on("-c FILE", "--config-file=FILE") { |file|
+    $config_file = file
+  }
+
+  opt.on("-s", "--dump-config-template") {
+    $dump_config = true
+  }
+
+  opt.on('-A', '--add-user') {
+    $add_user_mode = true
+  }
+
+  opt.on('--develop-mode') {
+    $develop_mode = true
+  }
+
+  opt.parse!(ARGV)
+}
+
+if not ($config_file or $dump_config)
+  STDERR.print("configuration file is not specified\n")
+  exit 1
+end
+
+#
+# サンプルのコンフィギュレーションを表示する場合は即終了
+#
+if $dump_config
+  STDOUT.print(IO.read(DATA_DIR + "config.yml"))
+  exit
+end
+
+#
+# スキーマの読み込み
+#
+SCHEMA  = EnvLog::Schema.read(DATA_DIR + "schema.yml") 
+
+#
+# コンフィギュレーションの読み込み
+# ※エラーが検出された場合は読み込みメソッド内でプロセス終了
+#
+CONFIG  = EnvLog::Config.read($config_file)
+
+#
+# ロガーオブジェクトの生成
+#
+$logger = EnvLog::Log.open()
+
+#
+# アプリ固有のライブラリの読み込み
+#
+require "#{APP_LIB_DIR + "main"}"
+require "#{APP_LIB_DIR + "webserver"}"
+require "#{APP_LIB_DIR + "websock"}"
+require "#{APP_LIB_DIR + "db"}"
+
+#
+# ユーザ追加モードの場合はユーザ追加を行い即終了
+# ※エラーが検出された場合は読み込みメソッド内でプロセス終了
+#
+if $add_user_mode
+  EnvLog::Viewer::WebServer.add_user(ARGV[0], ARGV[1])
+  exit
+end
+
+#
+# シグナルハンドラの登録
+#
+Signal.trap(:INT) {EnvLog::Viewer.stop}
+Signal.trap(:TERM) {EnvLog::Viewer.stop}
+
+#
+# アプリを起動
+#
+EnvLog::Viewer.start
