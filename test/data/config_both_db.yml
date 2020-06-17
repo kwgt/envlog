@@ -5,12 +5,12 @@ database:
   sqlite3:
     path:     ~/lib/envlog.db
 
-  #mysql:
-  #  host:     db3.local
-  #  username: envlog
-  #  password: S1H9-P64A-KUO6
-  #  database: envlog.db
-  #  encoding: utf8
+  mysql:
+    host:     db3.local
+    username: envlog
+    password: XXXX-XXXX-XXXX
+    database: envlog.db
+    encoding: utf8
 
 #
 # loggerのデータの入力ソース設定

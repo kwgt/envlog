@@ -7,6 +7,15 @@
 #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
 #
 
+module EnvLog
+  module Logger
+    module DBA
+      class NotRegisterd < StandardError; end
+      class NotUpdated < StandardError; end
+    end
+  end
+end
+
 #
 # config.ymlのスキーマ定義によりどちらかしか設定できない
 #
