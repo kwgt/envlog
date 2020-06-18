@@ -1,0 +1,91 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+
+require 'pathname'
+require 'optparse'
+require 'yaml'
+require 'securerandom'
+require 'mysql2'
+
+class String
+  if not method_defined?(:to_mysql)
+    #
+    # MySQLの文字列リテラルとして返すので注意
+    #
+    def to_mysql
+      '"' + Mysql2::Client.escape(self) + '"'
+    end
+  end
+end
+
+BASE_DIR    = Pathname.new(__FILE__).dirname + ".."
+DATA_DIR    = BASE_DIR + "data"
+CONFIG_FILE = DATA_DIR + "config.yml"
+
+require "#{LIB_DIR + "version"}"
+require "#{LIB_DIR + "misc"}"
+require "#{LIB_DIR + "schema"}"
+require "#{LIB_DIR + "config"}"
+
+OptionParser.new { |opt|
+  opt.version = EnvLog::VERSION
+  opt.banner += " BT-ADDR DESCRIPTION POWER-SOURCE"
+
+  opt.on("-c FILE", "--config-file=FILE") { |file|
+    $config_file = file
+  }
+
+  opt.parse!(ARGV)
+
+  raise("configuration file is not specified.") if not $config_file
+}
+
+SCHEMA = EnvLog::Schema.read(DATA_DIR + "schema.yml")
+CONFIG = EnvLog::Config.read($config_file)
+
+raise("arguments not enough") if ARGV.size < 3
+
+if CONFIG["database"].include?("mysql")
+  db_cred = EnvLog::Config.fetch_path("database", "mysql")
+else
+  raise("MySQL configuration is not specified")
+end
+
+addr  = ARGV[1]
+id    = SecureRandom.uuid
+descr = ARGV[2]
+psrc  = ARGV[3]
+
+if not ["STABLE", "BATTERY", "NONE"].include?(psrc.upcase)
+  raise("invalid foreign power source type")
+end
+
+begin
+  db = Mysql2::Client.new(db_cred)
+
+  db.query("start transaction;")
+
+	db.query(<<~EOQ)
+    update SENSOR_TABLE set addr = NULL where addr = "#{addr}";
+	EOQ
+
+	db.query(<<~EOQ)
+		insert into SENSOR_TABLE
+        values ("#{addr}",
+                "#{id}",
+                NOW(),
+                NOW(),
+                #{descr.to_mysql},
+                #{psrc.upcase});
+	EOQ
+
+  db.query("commit;")
+
+rescue => e
+  p e
+  pp e.backtrace
+  db.query("rollback;")
+
+ensure
+  db&.close
+end
