@@ -16,12 +16,12 @@ module EnvLog
     class << self
       def device
         if not @device
-          file = CONFIG.dig("log", "file")
+          file = Config.dig(:log, :file)
 
           if (not file) || file == "-"
             @device = STDOUT
           else
-            @device = File.open(CONFIG.dig("log", "file"), "a")
+            @device = File.open(Config.dig(:log, :file), "a")
           end
 
           @device.sync = true
@@ -31,14 +31,14 @@ module EnvLog
       end
 
       def open
-        if not CONFIG["log"]
+        if not Config[:log]
           ret = Logger.new(STDOUT)
 
         else
-          age  = CONFIG.dig("log", "shift_age")  || 0
-          size = CONFIG.dig("log", "shift_size") || (1024 * 1024)
+          age  = Config.dig(:log, :shift_age)  || 0
+          size = Config.dig(:log, :shift_size) || (1024 * 1024)
 
-          case CONFIG.dig("log", "level")
+          case Config.dig(:log, :level)
           when "UNKNOWN"
             level = Logger::UNKNOWN
 
