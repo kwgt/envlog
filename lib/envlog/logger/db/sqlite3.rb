@@ -14,9 +14,6 @@ module EnvLog
     module DBA
       DB_PATH = Config.fetch_path("database", "sqlite3", "path")
 
-      class NotRegisterd < StandardError; end
-      class NotUpdated < StandardError; end
-
       class << self
         def db
           if not @db
@@ -48,8 +45,8 @@ module EnvLog
 
               raise(NotRegisterd) if not id
 
-              seq  = db.get_first_value(<<~EOQ, d["addr"])
-                select `last-seq` from SENSOR_TABLE where addr = ?;
+              seq  = db.get_first_value(<<~EOQ, id)
+                select `last-seq` from SENSOR_TABLE where id = ?;
               EOQ
 
               raise(NotUpdated) if d["seq"] == seq
@@ -69,11 +66,11 @@ module EnvLog
                     values(?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?);
               EOQ
 
-              db.query(<<~EOQ, d['seq'], d["addr"])
+              db.query(<<~EOQ, d['seq'], id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
                         mtime = datetime('now', 'localtime')
-                    where addr = ?;
+                    where id = ?;
               EOQ
 
               db.commit
@@ -82,7 +79,7 @@ module EnvLog
               db.rollback
 
             rescue NotRegisterd => e
-              $logger.error("db") {
+              Log.error("db") {
                 "unregister sensor requested (#{d["addr"]})"
               }
               db.rollback

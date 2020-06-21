@@ -65,18 +65,18 @@ end
 #
 # スキーマの読み込み
 #
-SCHEMA  = EnvLog::Schema.read(DATA_DIR + "schema.yml") 
+EnvLog::Schema.read(DATA_DIR + "schema.yml") 
 
 #
 # コンフィギュレーションの読み込み
 # ※エラーが検出された場合は読み込みメソッド内でプロセス終了
 #
-CONFIG  = EnvLog::Config.read($config_file)
+EnvLog::Config.read($config_file)
 
 #
-# ロガーオブジェクトの生成
+# ロガーの設定
 #
-$logger = EnvLog::Log.open()
+EnvLog::Log.setup()
 
 #
 # アプリ固有ライブラリの読み込み
