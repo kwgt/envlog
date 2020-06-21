@@ -60,7 +60,7 @@ module EnvLog
           db.query("rollback;")
 
         rescue NotRegisterd
-          $logger.error("db") {
+          Log.error("db") {
             "unregister sensor requested (#{d["addr"]})"
           }
           db.query("rollback;")

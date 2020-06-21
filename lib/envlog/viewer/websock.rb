@@ -165,7 +165,7 @@ module EnvLog
 
             sleep 1 until EM.reactor_running?
 
-            $logger.info("websock") {"started (#{bind_url()})"}
+            Log.info("websock") {"started (#{bind_url()})"}
 
             opts = {
               :host        => bind_addr,
@@ -196,7 +196,7 @@ module EnvLog
                                 false)
 
               sock.onopen {
-                $logger.info("websock") {"connection from #{addr}:#{port}"}
+                Log.info("websock") {"connection from #{addr}:#{port}"}
               }
 
               sock.onbinary { |msg|
@@ -204,14 +204,14 @@ module EnvLog
                   serv.receive_dgram(msg)
 
                 rescue => e
-                  $logger.error("websock") {
+                  Log.error("websock") {
                     "error occured: #{e.message} (#{e.backtrace[0]})"
                   }
                 end
               }
 
               sock.onclose {
-                $logger.info("websock") {
+                Log.info("websock") {
                   "connection close from #{addr}:#{port}"
                 }
 
@@ -266,7 +266,7 @@ module EnvLog
       # @note MessagePack::Rpc::Serverのオーバーライド
       # 
       def on_error(e)
-        $logger.error("websock") {e.message}
+        Log.error("websock") {e.message}
       end
       private :on_error
 
