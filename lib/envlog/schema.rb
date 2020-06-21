@@ -36,6 +36,10 @@ module EnvLog
         sch = JSONSchemer.schema(@schema[key])
         return sch.validate(data).to_a
       end
+
+      def valid?(key, data)
+        return validate(key, data).empty?
+      end
     end
   end
 end
