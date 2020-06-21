@@ -27,7 +27,7 @@ module EnvLog
 
       enable :logging
 
-      use Rack::CommonLogger, $logger
+      use Rack::CommonLogger, Log.logger
 
       configure :development do
         before do
@@ -217,10 +217,10 @@ module EnvLog
 
           @thread = Thread.start {
             begin
-              $logger.info('webserver') {"started #{bind_url()}"}
+              Log.info('webserver') {"started #{bind_url()}"}
               @launch.run
             ensure
-              $logger.info('webserver') {"stopped"}
+              Log.info('webserver') {"stopped"}
             end
           }
 
