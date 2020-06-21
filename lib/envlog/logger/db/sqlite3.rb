@@ -12,7 +12,7 @@ require 'sqlite3'
 module EnvLog
   module Logger
     module DBA
-      DB_PATH = Config.fetch_path("database", "sqlite3", "path")
+      DB_PATH = Config.fetch_path(:database, :sqlite3, :path)
 
       class << self
         def db

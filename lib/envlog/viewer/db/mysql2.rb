@@ -13,7 +13,7 @@ require "#{LIB_DIR}/mysql2"
 module EnvLog
   module Viewer
     class DBA
-      DB_CRED = Config.dig("database", "mysql")
+      DB_CRED = Config.dig(:database, :mysql)
 
       using Mysql2Extender
 
