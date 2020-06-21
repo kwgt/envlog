@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "envlog/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "envlog-logger"
+  spec.name          = "envlog"
   spec.version       = EnvLog::VERSION
   spec.authors       = ["Hirosho Kuwagata"]
   spec.email         = ["kgt9221@gmail.com"]
