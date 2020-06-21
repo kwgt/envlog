@@ -11,6 +11,7 @@ require_relative '../lib/rpc_client'
 require "#{PKG_LIB_DIR}/misc"
 require "#{PKG_LIB_DIR}/schema"
 require "#{PKG_LIB_DIR}/config"
+require "#{PKG_LIB_DIR}/log"
 require "#{PKG_LIB_DIR}/viewer/websock"
 
 Thread.abort_on_exception = true
@@ -24,17 +25,23 @@ class TestRpcProcedure < Test::Unit::TestCase
     end
   end
 
+  def setup
+  end
+
+  def teardown
+  end
+
   #
   # RPCサーバへの接続
   #
   test "connect to RPC server" do
     EnvLog::Schema.read(DEFAULT_SCHEMA)
     EnvLog::Config.read(DEFAULT_CONFIG)
+    EnvLog::Log.setup()
 
     EnvLog::Viewer::WebSocket.start(EnvLog::Viewer)
 
     Thread.fork {EM.run}
-
     sleep(1)
 
     port = RpcClient.new("ws://127.0.0.1:2565")
