@@ -13,7 +13,7 @@ module EnvLog
       def start
         Log.info("main") {"start logger"}
 
-        Config["source"].each {|src| InputSource.add_source(src)}
+        Config[:source].each {|src| InputSource.add_source(src)}
         InputSource.wait
       end
     end
