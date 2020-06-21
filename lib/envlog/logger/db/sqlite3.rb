@@ -19,7 +19,16 @@ module EnvLog
 
       class << self
         def db
-          return @db ||= SQLite3::Database.new(DB_PATH.to_s)
+          if not @db
+            @db = SQLite3::Database.new(DB_PATH.to_s)
+            @db.busy_handler {
+              $logger.error("db") {"database access is conflict, retry."}
+              sleep(0.1)
+              true
+            }
+          end
+
+          return @db
         end
         private :db
 
@@ -28,13 +37,8 @@ module EnvLog
         end
         private :mutex
 
-        def sync
-          mutex.synchronize {yield()}
-        end
-        private :sync
-
         def put_data(d)
-          sync {
+          mutex.synchronize {
             begin
               db.transaction
 
