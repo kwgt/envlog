@@ -8,13 +8,17 @@
 #
 
 require 'pathname'
+require 'logger'
 
-TEST_BASE_DIR = Pathname.new(File.expand_path(__FILE__)).dirname.parent
-TEST_DATA_DIR = TEST_BASE_DIR + "data"
+TEST_BASE_DIR  = Pathname.new(File.expand_path(__FILE__)).dirname.parent
+TEST_DATA_DIR  = TEST_BASE_DIR + "data"
+              
+PKG_BASE_DIR   = TEST_BASE_DIR.parent
+PKG_DATA_DIR   = PKG_BASE_DIR + "data"
+PKG_LIB_DIR    = PKG_BASE_DIR + "lib" + "envlog"
 
-PKG_BASE_DIR  = TEST_BASE_DIR.parent
-PKG_DATA_DIR  = PKG_BASE_DIR + "data"
-PKG_LIB_DIR   = PKG_BASE_DIR + "lib" + "envlog"
+DEFAULT_SCHEMA = PKG_DATA_DIR + "schema.yml"
+DEFAULT_CONFIG = TEST_DATA_DIR + "config_default.yml"
 
 require "#{PKG_LIB_DIR}/version"
 require "#{PKG_LIB_DIR}/misc"
