@@ -14,102 +14,110 @@
     $('div#air-pressure > div.value > span.number').text(info["a/p"]);
   }
 
-  function plotTimeSeriesData(info) {
-    var trace1;
-    var trace2;
-    var trace3;
+  function plotTemperatureData(info) {
+    var trace;
     var data;
     var layout;
 
+    trace  = {
+      type:   "scatter",
+      mode:   "markers",
+      marker: {size:2},
+      x:      info["time"],
+      y:      info["temp"]
+    };
+
+    data   = [trace]
+
+    layout = {
+      title: "気温",
+      xaxis: {type:"date"},
+      yaxis: {
+        autorange:  false,
+        type:       "linear",
+        ticksuffix: "\u00B0C",
+        range:      [5, 40],
+      }
+    }
+
+    Plotly.newPlot('temp-graph', data, layout);
+  }
+
+  function plotHumidityData(info) {
+    var trace;
+    var data;
+    var layout;
+
+    trace  = {
+      type:   "scatter",
+      mode:   "markers",
+      marker: {size:2},
+      x:      info["time"],
+      y:      info["hum"]
+    };
+
+    data   = [trace]
+
+    layout = {
+      title: "湿度",
+      xaxis: {type:"date"},
+      yaxis: {
+        autorange:  false,
+        type:       "linear",
+        ticksuffix: "%",
+        range:      [30, 90]
+      }
+    }
+
+    Plotly.newPlot('hum-graph', data, layout);
+  }
+
+  function plotAirPressureData(info) {
+    var trace;
+    var data;
+    var layout;
+
+    trace  = {
+      type:   "scatter",
+      mode:   "markers",
+      marker: {size:2},
+      x:      info["time"],
+      y:      info["a/p"]
+    };
+
+    data   = [trace]
+
+    layout = {
+      title: "気圧",
+      xaxis: {type:"date"},
+      yaxis: {
+        autorange:  false,
+        type:       "linear",
+        ticksuffix: "hpa",
+        range:      [950, 1100]
+      }
+    }
+
+    Plotly.newPlot('air-graph', data, layout);
+  }
+
+  function plotTimeSeriesData(info) {
     Plotly.setPlotConfig({locale: 'ja-JP'})
 
     /*
      * 気温
      */
-
-    trace1 = {
-      type: "scatter",
-      mode: "lines",
-      x: info["time"],
-      y: info["temp"]
-    };
-
-    data   = [trace1]
-
-    layout = {
-      title: "気温",
-
-      xaxis: {
-        type: "date"
-      },
-
-      yaxis: {
-        autorange: false,
-        type: "linear",
-        ticksuffix: "\u00B0C",
-        range: [5, 40],
-      }
-    }
-
-    Plotly.newPlot('temp-graph', data, layout);
+    plotTemperatureData(info);
 
     /*
      *  湿度
      */
-    trace2 = {
-      type: "scatter",
-      mode: "lines",
-      x: info["time"],
-      y: info["hum"]
-    };
-
-    data   = [trace2]
-
-    layout = {
-      title: "湿度",
-
-      xaxis: {
-        type: "date"
-      },
-
-      yaxis: {
-        autorange: false,
-        type: "linear",
-        ticksuffix: "%",
-        range: [30, 90]
-      }
-    }
-
-    Plotly.newPlot('hum-graph', data, layout);
+    plotHumidityData(info);
 
     /*
      *  気圧
      */
-    trace3 = {
-      type: "scatter",
-      mode: "lines",
-      x: info["time"],
-      y: info["a/p"]
-    };
-
-    data   = [trace3]
-
-    layout = {
-      title: "気圧",
-
-      xaxis: {
-        type: "date"
-      },
-
-      yaxis: {
-        autorange: false,
-        type: "linear",
-        ticksuffix: "hpa",
-        range: [950, 1100]
-      }
-    }
-
-    Plotly.newPlot('air-graph', data, layout);
+    plotAirPressureData(info);
   }
 
   function startSession() {
