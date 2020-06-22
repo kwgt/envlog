@@ -103,7 +103,7 @@ module EnvLog
         end
 
         def passwd_file
-          return @passwd_file ||= Config.fetch_path("webserver", "auth")
+          return @passwd_file ||= Config.fetch_path(:webserver, :auth)
         end
         private :passwd_file
 

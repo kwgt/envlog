@@ -17,10 +17,10 @@ module EnvLog
       class << self
         def add_serial_source(src)
           threads << Thread.fork {
-            tty  = src["port"]
+            tty  = src[:port]
             Log.info(tty) {"add serial input source"}
 
-            src  = src.select {|x| x != "type"}
+            src  = src.select {|x| x != :type}
             port = Serial.new(**src)
 
             loop {

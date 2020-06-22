@@ -11,10 +11,10 @@
 # config.ymlのスキーマ定義によりどちらかしか設定できない
 #
 
-if Config.has?(:database, :sqlite3)
+if EnvLog::Config.has?(:database, :sqlite3)
   require_relative "db/sqlite3"
 end
 
-if Config.has?(:database, :mysql)
+if EnvLog::Config.has?(:database, :mysql)
   require_relative "db/mysql2"
 end
