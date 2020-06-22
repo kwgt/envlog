@@ -6,6 +6,9 @@
 
 #include <M5Atom.h>
 #include <BLEDevice.h>
+#include <ESPRandom.h>
+
+#define ENABLE_LED
 
 #define MANUFACTURER_ID     55229
 #define DATA_FORMAT_VERSION 2
@@ -16,10 +19,12 @@
       (uint16_t)((((p)[1]<<8)&0xff00)|(((p)[0]<<0)&0x00ff))
 
 BLEScan* scanner;
+#ifdef ENABLE_LED 
+RTC_DATA_ATTR int boot_count = 0;
+#endif /* defined(ENABLE_LED) */
 
 void
-setup()
-{
+setup() {
   M5.begin(true, false, true);
 
   Serial.begin(115200);
@@ -47,10 +52,20 @@ loop()
   float pres;
   float vbat;
   float vbus;
+#ifdef ENABLE_LED 
+  int msk;
+#endif /* defined(ENABLE_LED) */
 
   list = scanner->start(10);
   nf   = list.getCount();
   ns   = 0;
+
+#ifdef ENABLE_LED 
+  for (i = 0; i < 25; i++) {
+    msk = 0xff0000 >> ((boot_count % 3) * 8);
+    M5.dis.drawpix(i, ESPRandom::get() & msk);
+  }
+#endif /* defined(ENABLE_LED) */
 
   for (i = 0, y = 33; i < nf; i++) {
     dev = list.getDevice(i);
@@ -84,5 +99,10 @@ loop()
   }
 
   Serial.flush();
+
+#ifdef ENABLE_LED 
+  boot_count++;
+  delay(50);
+#endif /* defined(ENABLE_LED) */
 }
 
