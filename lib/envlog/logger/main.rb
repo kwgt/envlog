@@ -11,7 +11,7 @@ module EnvLog
   module Logger
     class << self
       def start
-        $logger.info("main") {"start logger"}
+        Log.info("main") {"start logger"}
 
         CONFIG["source"].each {|src| InputSource.add_source(src)}
         InputSource.wait

@@ -100,7 +100,7 @@ module EnvLog
         # @return [String] バインドアドレスを表す文字列
         #
         def bind_addr
-          return @bind_addr ||= CONFIG.dig("webserver", "bind")
+          return @bind_addr ||= Config.dig(:webserver, :bind)
         end
         private :bind_addr
 
@@ -110,16 +110,16 @@ module EnvLog
         # @return [boolean] TSLを使用する場合はtrue、使用しない場合はfalse
         #
         def use_tsl?
-          return CONFIG.dig("webserver", "tsl").!.!
+          return Config.has?(:webserver, :tsl)
         end
 
         #
-        # WebSoketに使用するポート番号をコンフィギュレーションデータから読み出す
+        # WebSoketに使用するポート番号をコンフィギュレーションから読み出す
         #
         # @return [Integer] WeoSocketで使用するポート番号
         #
         def ws_port
-          return @ws_port ||= CONFIG.dig("webserver", "port", "ws")
+          return @ws_port ||= Config.dig(:webserver, :port, :ws)
         end
 
         #
@@ -128,16 +128,16 @@ module EnvLog
         # @return [Pathname] 証明書ファイルのパス
         #
         def cert_file
-          return @cert_file ||= Config.fetch_path("webserver", "tsl", "cert")
+          return @cert_file ||= Config.fetch_path(:webserver, :tsl, :cert)
         end
 
         #
-        # サーバ鍵ファイルのパスをコンフィギュレーションデータか読み出す
+        # サーバ鍵ファイルのパスをコンフィギュレーションから読み出す
         #
         # @return [Pathname] 鍵ファイルのパス
         #
         def key_file
-          return @key_file ||= Config.fetch_path("webserver", "tsl", "key")
+          return @key_file ||= Config.fetch_path(:webserver, :tsl, :key)
         end
 
         #
@@ -165,7 +165,7 @@ module EnvLog
 
             sleep 1 until EM.reactor_running?
 
-            $logger.info("websock") {"started (#{bind_url()})"}
+            Log.info("websock") {"started (#{bind_url()})"}
 
             opts = {
               :host        => bind_addr,
@@ -196,7 +196,7 @@ module EnvLog
                                 false)
 
               sock.onopen {
-                $logger.info("websock") {"connection from #{addr}:#{port}"}
+                Log.info("websock") {"connection from #{addr}:#{port}"}
               }
 
               sock.onbinary { |msg|
@@ -204,14 +204,14 @@ module EnvLog
                   serv.receive_dgram(msg)
 
                 rescue => e
-                  $logger.error("websock") {
+                  Log.error("websock") {
                     "error occured: #{e.message} (#{e.backtrace[0]})"
                   }
                 end
               }
 
               sock.onclose {
-                $logger.info("websock") {
+                Log.info("websock") {
                   "connection close from #{addr}:#{port}"
                 }
 
@@ -266,7 +266,7 @@ module EnvLog
       # @note MessagePack::Rpc::Serverのオーバーライド
       # 
       def on_error(e)
-        $logger.error("websock") {e.message}
+        Log.error("websock") {e.message}
       end
       private :on_error
 

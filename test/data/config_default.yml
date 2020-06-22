@@ -8,7 +8,7 @@ database:
   #mysql:
   #  host:     db3.local
   #  username: envlog
-  #  password: S1H9-P64A-KUO6
+  #  password: XXXX-XXXX-XXXX
   #  database: envlog.db
   #  encoding: utf8
 
@@ -30,7 +30,7 @@ source:
 # ※envlog-viewerのみ参照します
 #
 webserver:
-  bind:        "::/0"
+  bind:        "::"
   port:       
     http:      2564
     ws:        2565

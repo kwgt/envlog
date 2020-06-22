@@ -16,12 +16,12 @@ module EnvLog
     class << self
       def device
         if not @device
-          file = CONFIG.dig("log", "file")
+          file = Config.dig(:log, :file)
 
           if (not file) || file == "-"
             @device = STDOUT
           else
-            @device = File.open(CONFIG.dig("log", "file"), "a")
+            @device = File.open(Config.dig(:log, :file), "a")
           end
 
           @device.sync = true
@@ -30,15 +30,17 @@ module EnvLog
         return @device
       end
 
-      def open
-        if not CONFIG["log"]
-          ret = Logger.new(STDOUT)
+      def setup
+        @logger.close if @logger
+
+        if not Config[:log]
+          obj  = Logger.new(STDOUT)
 
         else
-          age  = CONFIG.dig("log", "shift_age")  || 0
-          size = CONFIG.dig("log", "shift_size") || (1024 * 1024)
+          age  = Config.dig(:log, :shift_age)  || 0
+          size = Config.dig(:log, :shift_size) || (1024 * 1024)
 
-          case CONFIG.dig("log", "level")
+          case Config.dig(:log, :level)
           when "UNKNOWN"
             level = Logger::UNKNOWN
 
@@ -61,13 +63,51 @@ module EnvLog
             level = Logger::INFO
           end
 
-          ret = Logger.new(device, age, size, :level => level)
+          obj = Logger.new(device, age, size, :level => level)
         end
 
-        ret.datetime_format = "%Y-%m-%dT%H:%M:%S"
-        ret.freeze
+        obj.datetime_format = "%Y-%m-%dT%H:%M:%S"
+        obj.freeze
 
-        return ret
+        @logger = obj
+      end
+
+      attr_reader :logger
+
+      def debug(*args, &b)
+        raise("not opened yet") if not @logger
+        @logger.debug(*args, &b)
+      end
+
+      def error(*args, &b)
+        raise("not opened yet") if not @logger
+        @logger.error(*args, &b)
+      end
+
+      def fatal(*args, &b)
+        raise("not opened yet") if not @logger
+        @logger.fatal(*args, &b)
+      end
+
+      def info(*args, &b)
+        raise("not opened yet") if not @logger
+        @logger.info(*args, &b)
+      end
+
+      def unknown(*args, &b)
+        raise("not opened yet") if not @logger
+        @logger.unknown(*args, &b)
+      end
+
+      def warn(*args, &b)
+        raise("not opened yet") if not @logger
+        @logger.warn(*args, &b)
+      end
+
+      def close
+        raise("not opened yet") if not @logger
+        @logger.close
+        @logger = nil
       end
     end
   end

@@ -7,17 +7,20 @@
 #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
 #
 
-require 'sqlite3'
+require 'mysql2'
+require "#{LIB_DIR}/mysql2"
 
 module EnvLog
   module Viewer
     class DBA
-      DB_PATH = Config.fetch_path("database", "sqlite3", "path")
+      DB_CRED = CONFIG.dig("database", "mysql")
+
+      using Mysql2Extender
 
       class << self
         def open
           ret = self.allocate
-          ret.instance_variable_set(:@db, SQLite3::Database.new(DB_PATH.to_s))
+          ret.instance_variable_set(:@db, Mysql2::Client.new(DB_CRED))
 
           return ret
         end
@@ -30,9 +33,9 @@ module EnvLog
       end
 
       def get_sensor_list
-        rows = @db.execute(<<~EOQ)
-          select id, datetime(ctime), datetime(mtime), descr, state
-              from SENSOR_TABLE where addr is not NULL;
+        rows = @db.query(<<~EOQ, :as => :array)
+          select id, ctime, mtime, descr, state
+              from SENSOR_TABLE addr is not NULL;
         EOQ
 
         ret = rows.inject([]) { |m, n|
@@ -49,9 +52,10 @@ module EnvLog
       end
 
       def get_sensor_value(id)
-        row = @db.get_first_row(<<~EOQ, id)
+        row = @db.get_first_row(<<~EOQ, :as => :array)
           select temp, humidity, `air-pres`
-              from DATA_TABLE where sensor = ? order by time desc limit 1;
+              from DATA_TABLE where sensor = "#{id}"
+              order by time desc limit 1;
         EOQ
 
         return {:temp => row[0], :hum => row[1], :"a/p" => row[2]}
@@ -59,23 +63,22 @@ module EnvLog
 
       def get_time_series_data(id, tm, span)
         if tm.zero?
-          rows = @db.execute2(<<~EOQ, id, "now")
+          rows = @db.query(<<~EOQ, :as => :array)
             select time, temp, humidity, `air-pres` from DATA_TABLE
-                where sensor = ? and
-                      time >= datetime(?, "localtime", "-#{span} seconds");
+                where sensor = "#{id}" and
+                      time >= (NOW() - interval #{span} second);
           EOQ
         else
-          rows = @db.execute2(<<~EOQ, id, tm, tm)
+          rows = @db.query(<<~EOQ, :as => :array)
             select time, temp, humidity, `air-pres` from DATA_TABLE
-                where sensor = ? and
-                    time >= datetime(?, "localtime") and
-                    time <= datetime(?, "localtime", "+#{span} seconds");
+                where sensor = "#{id}" and
+                      time >= "#{tm}" and
+                      time <= (#{tm} + interval #{span} seconds);
           EOQ
         end
 
         ret = {:time => [], :temp => [], :hum => [], :"a/p" => []}
 
-        rows.shift
         rows.each { |row|
           ret[:time]  << row[0]
           ret[:temp]  << row[1]
@@ -88,4 +91,3 @@ module EnvLog
     end
   end
 end
-
