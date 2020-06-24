@@ -18,10 +18,14 @@ PKG_DATA_DIR   = PKG_BASE_DIR + "data"
 PKG_LIB_DIR    = PKG_BASE_DIR + "lib" + "envlog"
 
 DEFAULT_SCHEMA = PKG_DATA_DIR + "schema.yml"
-DEFAULT_CONFIG = TEST_DATA_DIR + "config_default.yml"
+DEFAULT_CONFIG = TEST_DATA_DIR + "config" + "default.yml"
 
 require "#{PKG_LIB_DIR}/version"
 require "#{PKG_LIB_DIR}/misc"
 require "#{PKG_LIB_DIR}/config"
 require "#{PKG_LIB_DIR}/schema"
 require "#{PKG_LIB_DIR}/log"
+
+EnvLog::Schema.read(DEFAULT_SCHEMA)
+EnvLog::Config.read(DEFAULT_CONFIG)
+EnvLog::Log.setup()
