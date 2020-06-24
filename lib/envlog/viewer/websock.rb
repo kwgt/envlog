@@ -372,7 +372,7 @@ module EnvLog
         EM.defer {
           begin
             db = DBA.open
-            df.resolve(db.get_sensor_value(id))
+            df.resolve(db.get_latest_value(id))
 
           rescue => e
             df.reject(e)

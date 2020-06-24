@@ -31,8 +31,21 @@ module EnvLog
 
       def get_sensor_list
         rows = @db.execute(<<~EOQ)
-          select id, datetime(ctime), datetime(mtime), descr, state
-              from SENSOR_TABLE where addr is not NULL;
+          select SENSOR_TABLE.id,
+                 datetime(SENSOR_TABLE.ctime),
+                 datetime(SENSOR_TABLE.mtime),
+                 SENSOR_TABLE.descr,
+                 SENSOR_TABLE.state,
+                 DATA_TABLE.temp,
+                 DATA_TABLE.humidity,
+                 DATA_TABLE.`air-pres`,
+                 DATA_TABLE.rssi,
+                 DATA_TABLE.vbat,
+                 DATA_TABLE.vbus
+              from SENSOR_TABLE left join DATA_TABLE
+                  on SENSOR_TABLE.id = DATA_TABLE.sensor and
+                     SENSOR_TABLE.mtime = DATA_TABLE.time
+              where addr is not NULL;
         EOQ
 
         ret = rows.inject([]) { |m, n|
@@ -41,20 +54,36 @@ module EnvLog
             :ctime => n[1],
             :mtime => n[2],
             :descr => n[3],
-            :state => n[4]
+            :state => n[4],
+            :temp  => n[5],
+            :hum   => n[6],
+            :"a/p" => n[7],
+            :rssi  => n[8],
+            :vbat  => n[9],
+            :vbus  => n[10],
           }
         }
 
         return ret
       end
 
-      def get_sensor_value(id)
+      def get_latest_value(id)
         row = @db.get_first_row(<<~EOQ, id)
-          select temp, humidity, `air-pres`
+          select time, temp, humidity, `air-pres`, rssi, vbat, vbus
               from DATA_TABLE where sensor = ? order by time desc limit 1;
         EOQ
 
-        return {:temp => row[0], :hum => row[1], :"a/p" => row[2]}
+        ret = {
+          :time  => row[0],
+          :temp  => row[1],
+          :hum   => row[2],
+          :"a/p" => row[3],
+          :rssi  => row[4],
+          :vbat  => row[5],
+          :vbus  => row[6],
+        }
+
+        return ret
       end
 
       def get_time_series_data(id, tm, span)
@@ -84,6 +113,14 @@ module EnvLog
         }
 
         return ret
+      end
+
+      def poll_sensor
+        rows = @db.execute(<<~EOQ)
+          select id, mtime from SENSOR_TABLE where addr is not NULL;
+        EOQ
+
+        return rows.inject({}) {|m, n| m[n[0]] = n[1]; m}
       end
     end
   end

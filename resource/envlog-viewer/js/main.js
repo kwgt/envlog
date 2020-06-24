@@ -5,38 +5,94 @@
  */
 
 (function () {
-  function setTable(list) {
+  var session;
+
+  function updateSensorRow(id) {
+    session.getLatestSensorValue(id)
+      .then((info) => {
+        $('table#sensor-table > tbody')
+          .find(`tr[data-sensor-id=${info["id"]}]`)
+            .find('td.last-update')
+              .text(info["time"])
+            .end()
+            .find('td.temperature')
+              .text(info["temp"])
+            .end()
+            .find('td.humidity')
+              .text(info["hum"])
+            .end()
+            .find('td.air-pressure')
+              .text(info["a/p"])
+            .end()
+            .find('td.vbat')
+              .text(info["vbat"])
+            .end()
+            .find('td.vbus')
+              .text(info["vbus"])
+            .end();
+      });
+  }
+
+  function setSensorTable(list) {
     list.forEach((info) => {
       $('table#sensor-table > tbody')
         .append($('<tr>')
+          .attr("data-sensor-id", info["id"])
           .append($('<td>')
             .addClass('sensor-num')
-          )
-          .append($('<td>')
-            .addClass('sensor-id')
             .append($('<a>')
-              .attr('href', `/sensor/${info["id"]}`)
-              .text(info["id"])
+              .attr('href', `sensor/${info["id"]}`)
             )
           )
           .append($('<td>')
-            .addClass('regist-date')
-            .text(info["ctime"])
+            .addClass('last-update')
+            .text(info["mtime"])
           )
           .append($('<td>')
-            .addClass('sensor-state')
+            .addClass('temperature')
+            .text(sprintf("%4.1f", info["temp"]))
+          )
+          .append($('<td>')
+            .addClass('humidity')
+            .text(sprintf("%4.1f", info["hum"]))
+          )
+          .append($('<td>')
+            .addClass('air-pressure')
+            .text(sprintf("%4d", info["a/p"]))
+          )
+          .append($('<td>')
+            .addClass('vbat')
+            .text(sprintf("%4.2f", info["vbat"]))
+          )
+          .append($('<td>')
+            .addClass('vbus')
+            .text(sprintf("%4.2f", info["vbus"]))
+          )
+          .append($('<td>')
+            .addClass('state')
             .text(info["state"])
           )
           .append($('<td>')
-            .addClass('sensor-description')
+            .addClass('description')
             .text(info["descr"])
           )
         );
     });
   }
 
+  function pollSensor()
+  {
+    session.pollSensor()
+      .then((info) => {
+        console.log(info);
+      });
+  }
+
   function startSession() {
     session
+      .on('update_sensor', (id) => {
+        updateSensorRow(id);
+      })
       .on('session_closed', () => {
         Utils.showAbortShield("session closed");
       });
@@ -46,7 +102,9 @@
         return session.getSensorList()
       })
       .then((list) => {
-        setTable(list);
+        setSensorTable(list);
+
+        return session.addNotifyRequest("update_sensor");
       })
       .fail((error) => {
         Utils.showAbortShield(error);
@@ -74,6 +132,7 @@
       "/js/msgpack.min.js",
       "/js/jquery.nicescroll.min.js",
       "/js/ion.rangeSlider.min.js",
+      "/js/sprintf.min.js",
 
       "/css/main/style.scss",
       "/js/msgpack-rpc.js",

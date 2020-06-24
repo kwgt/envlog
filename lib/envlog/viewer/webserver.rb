@@ -79,6 +79,7 @@ module EnvLog
       end
 
       get %r{/css/(.+).scss} do |name|
+        p name
         content_type('text/css')
         scss name.to_sym, :views => APP_RESOURCE_DIR + "scss"
       end

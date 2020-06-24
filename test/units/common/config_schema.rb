@@ -4,7 +4,8 @@
 require 'test/unit'
 require 'yaml'
 require 'json_schemer'
-require_relative '../lib/common'
+
+require_relative '../../lib/common'
 
 class TestConfigSchema < Test::Unit::TestCase
   SCHEMA = YAML.load_file(PKG_DATA_DIR + "schema.yml")
@@ -21,7 +22,7 @@ class TestConfigSchema < Test::Unit::TestCase
   # SQLite3設定の有効化
   #
   test "enable SQLite3" do
-    config  = YAML.load_file(TEST_DATA_DIR + "config_sqlite3.yml")
+    config  = YAML.load_file(TEST_DATA_DIR + "config" + "sqlite3.yml")
     schemer = JSONSchemer.schema(SCHEMA["CONFIG"])
     diag    = schemer.validate(config).to_a
 
@@ -32,7 +33,7 @@ class TestConfigSchema < Test::Unit::TestCase
   # MySQL設定の有効化
   #
   test "enable MySQL" do
-    config  = YAML.load_file(TEST_DATA_DIR + "config_mysql.yml")
+    config  = YAML.load_file(TEST_DATA_DIR + "config" + "mysql.yml")
     schemer = JSONSchemer.schema(SCHEMA["CONFIG"])
     diag    = schemer.validate(config).to_a
 
@@ -43,7 +44,7 @@ class TestConfigSchema < Test::Unit::TestCase
   # SQLite3, MySQL両設定の有効化
   #
   test "enable both SQLite3 and MySQL" do
-    config  = YAML.load_file(TEST_DATA_DIR + "config_both_db.yml")
+    config  = YAML.load_file(TEST_DATA_DIR + "config" + "both_db.yml")
     schemer = JSONSchemer.schema(SCHEMA["CONFIG"])
     diag    = schemer.validate(config).to_a
 

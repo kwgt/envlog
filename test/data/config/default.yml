@@ -3,7 +3,7 @@
 #
 database:
   sqlite3:
-    path:     ~/lib/envlog.db
+    path:     ./data/envlog.db
 
   #mysql:
   #  host:     db3.local

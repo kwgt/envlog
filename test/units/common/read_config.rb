@@ -5,8 +5,7 @@ require 'test/unit'
 require 'yaml'
 require 'json_schemer'
 
-require_relative '../lib/common'
-require_relative '../lib/rpc_client'
+require_relative '../../lib/common'
 
 require "#{PKG_LIB_DIR}/misc"
 require "#{PKG_LIB_DIR}/schema"
@@ -33,13 +32,7 @@ class TestReadConfig < Test::Unit::TestCase
     assert_not_nil(EnvLog::Schema[:INPUT_DATA])
 
     assert_nothing_raised {
-      begin
-      EnvLog::Config.read(TEST_DATA_DIR + "config_sqlite3.yml")
-      rescue => e
-        p e
-        pp e.backtrace[0..5]
-        raise(e)
-      end
+      EnvLog::Config.read(TEST_DATA_DIR + "config" + "sqlite3.yml")
     }
   end
 end
