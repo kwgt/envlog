@@ -2,7 +2,7 @@
 # coding: utf-8
 
 #
-# Environemnt data logger 
+# Environemnt data logger
 #
 #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
 #
@@ -36,9 +36,13 @@ OptionParser.new { |opt|
 EnvLog::Schema.read(SCHEMA_FILE)
 EnvLog::Config.read($config_file)
 
-if EnvLog::Config.has?(:database, :sqlite3)
-  db_path = EnvLog::Config.fetch_path(:database, :sqlite3, :path)
-  system(%Q{sqlite3 "#{db_path}"})
+if EnvLog::Config.has?(:database, :mysql)
+	host = EnvLog::Config.dig(:database, :mysql, :host)
+	user = EnvLog::Config.dig(:database, :mysql, :username)
+	pass = EnvLog::Config.dig(:database, :mysql, :password)
+	db   = EnvLog::Config.dig(:database, :mysql, :database)
+
+	system(%Q{mysql -h"#{host}" -u"#{user}" -p"#{pass}" "#{db}"})
 else
-  raise("SQLite3 configuration is not specified")
+	raise("MySQL configuration is not specified")
 end

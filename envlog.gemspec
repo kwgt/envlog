@@ -5,7 +5,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require "envlog/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "envlog-logger"
+  spec.name          = "envlog"
   spec.version       = EnvLog::VERSION
   spec.authors       = ["Hirosho Kuwagata"]
   spec.email         = ["kgt9221@gmail.com"]
@@ -39,8 +39,9 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "bundler", ">= 2.1"
   spec.add_development_dependency "rake", ">= 12.3.3"
-  spec.add_dependency "ffi-serial", "~> 1.0.5"
+  spec.add_development_dependency "websocket-client-simple", ">= 0.3.0"
 
+  spec.add_dependency "ffi-serial", "~> 1.0.5"
   spec.add_dependency "puma", "~> 4.3.5"
   spec.add_dependency "sinatra", "~> 2.0.5"
   spec.add_dependency "sinatra-contrib", "~> 2.0.5"

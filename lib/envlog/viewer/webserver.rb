@@ -27,7 +27,7 @@ module EnvLog
 
       enable :logging
 
-      use Rack::CommonLogger, $logger
+      use Rack::CommonLogger, Log.logger
 
       configure :development do
         before do
@@ -79,6 +79,7 @@ module EnvLog
       end
 
       get %r{/css/(.+).scss} do |name|
+        p name
         content_type('text/css')
         scss name.to_sym, :views => APP_RESOURCE_DIR + "scss"
       end
@@ -95,40 +96,40 @@ module EnvLog
 
       class << self
         def use_auth?
-          return CONFIG.dig("webserver", "auth").!.!
+          return Config.has?(:webserver, :auth)
         end
 
         def use_tls?
-          return CONFIG.dig("webserver", "tls").!.!
+          return Config.has?(:webserver, :tls)
         end
 
         def passwd_file
-          return @passwd_file ||= Config.fetch_path("webserver", "auth")
+          return @passwd_file ||= Config.fetch_path(:webserver, :auth)
         end
         private :passwd_file
 
         def http_port
-          return @http_port ||= CONFIG.dig("webserver", "port", "http")
+          return @http_port ||= Config.dig(:webserver, :port, :http)
         end
         private :http_port
 
         def ws_port
-          return @ws_port ||= CONFIG.dig("webserver", "port", "ws")
+          return @ws_port ||= Config.dig(:webserver, :port, :ws)
         end
         private :http_port
 
         def bind_addr
-          return @bind_addr ||= CONFIG.dig("webserver", "bind")
+          return @bind_addr ||= Config.dig(:webserver, :bind)
         end
         private :bind_addr
 
         def key_file
-          return @key_file ||= Config.fetch_path("webserver", "tls", "key")
+          return @key_file ||= Config.fetch_path(:webserver, :tls, :key)
         end
         private :key_file
 
         def cert_file
-          return @cert_file ||= Config.fetch_path("webserver", "tls", "cert")
+          return @cert_file ||= Config.fetch_path(:webserver, :tls, :cert)
         end
         private :key_file
 
@@ -217,10 +218,10 @@ module EnvLog
 
           @thread = Thread.start {
             begin
-              $logger.info('webserver') {"started #{bind_url()}"}
+              Log.info('webserver') {"started #{bind_url()}"}
               @launch.run
             ensure
-              $logger.info('webserver') {"stopped"}
+              Log.info('webserver') {"stopped"}
             end
           }
 

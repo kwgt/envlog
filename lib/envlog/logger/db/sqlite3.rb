@@ -12,14 +12,20 @@ require 'sqlite3'
 module EnvLog
   module Logger
     module DBA
-      DB_PATH = Config.fetch_path("database", "sqlite3", "path")
-
-      class NotRegisterd < StandardError; end
-      class NotUpdated < StandardError; end
+      DB_PATH = Config.fetch_path(:database, :sqlite3, :path)
 
       class << self
         def db
-          return @db ||= SQLite3::Database.new(DB_PATH.to_s)
+          if not @db
+            @db = SQLite3::Database.new(DB_PATH.to_s)
+            @db.busy_handler {
+              $logger.error("db") {"database access is conflict, retry."}
+              sleep(0.1)
+              true
+            }
+          end
+
+          return @db
         end
         private :db
 
@@ -28,13 +34,8 @@ module EnvLog
         end
         private :mutex
 
-        def sync
-          mutex.synchronize {yield()}
-        end
-        private :sync
-
         def put_data(d)
-          sync {
+          mutex.synchronize {
             begin
               db.transaction
 
@@ -44,8 +45,8 @@ module EnvLog
 
               raise(NotRegisterd) if not id
 
-              seq  = db.get_first_value(<<~EOQ, d["addr"])
-                select `last-seq` from SENSOR_TABLE where addr = ?;
+              seq  = db.get_first_value(<<~EOQ, id)
+                select `last-seq` from SENSOR_TABLE where id = ?;
               EOQ
 
               raise(NotUpdated) if d["seq"] == seq
@@ -65,11 +66,11 @@ module EnvLog
                     values(?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?);
               EOQ
 
-              db.query(<<~EOQ, d['seq'], d["addr"])
+              db.query(<<~EOQ, d['seq'], id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
                         mtime = datetime('now', 'localtime')
-                    where addr = ?;
+                    where id = ?;
               EOQ
 
               db.commit
@@ -78,7 +79,7 @@ module EnvLog
               db.rollback
 
             rescue NotRegisterd => e
-              $logger.error("db") {
+              Log.error("db") {
                 "unregister sensor requested (#{d["addr"]})"
               }
               db.rollback

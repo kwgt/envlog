@@ -7,24 +7,20 @@
 #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
 #
 
-require 'sqlite3'
+require 'mysql2'
+require "#{LIB_DIR}/mysql2"
 
 module EnvLog
   module Viewer
     class DBA
-      DB_PATH = Config.fetch_path(:database, :sqlite3, :path)
+      DB_CRED = Config.dig(:database, :mysql)
+
+      using Mysql2Extender
 
       class << self
         def open
-          db  = SQLite3::Database.new(DB_PATH.to_s)
-          db.busy_handler {
-            $logger.error("db") {"databse access is conflict, retry"}
-            sleep(0.1)
-            true
-          }
-
           ret = self.allocate
-          ret.instance_variable_set(:@db, db)
+          ret.instance_variable_set(:@db, Mysql2::Client.new(DB_CRED))
 
           return ret
         end
@@ -37,10 +33,10 @@ module EnvLog
       end
 
       def get_sensor_list
-        rows = @db.execute(<<~EOQ)
+        rows = @db.query(<<~EOQ, :as => :array)
           select SENSOR_TABLE.id,
-                 datetime(SENSOR_TABLE.ctime),
-                 datetime(SENSOR_TABLE.mtime),
+                 SENSOR_TABLE.ctime,
+                 SENSOR_TABLE.mtime,
                  SENSOR_TABLE.descr,
                  SENSOR_TABLE.state,
                  DATA_TABLE.temp,
@@ -48,11 +44,11 @@ module EnvLog
                  DATA_TABLE.`air-pres`,
                  DATA_TABLE.rssi,
                  DATA_TABLE.vbat,
-                 DATA_TABLE.vbus
+                 DATA_TABLE.vbus,
               from SENSOR_TABLE left join DATA_TABLE
                   on SENSOR_TABLE.id = DATA_TABLE.sensor and
-                     SENSOR_TABLE.mtime = DATA_TABLE.time
-              where addr is not NULL;
+                     SENSOR_TABLE.mtime = DATA_TABLE.timw
+              when addr is not NULL;
         EOQ
 
         ret = rows.inject([]) { |m, n|
@@ -75,9 +71,9 @@ module EnvLog
       end
 
       def get_latest_value(id)
-        row = @db.get_first_row(<<~EOQ, id)
+        row = @db.get_first_row(<<~EOQ, :as => :array)
           select time, temp, humidity, `air-pres`, rssi, vbat, vbus
-              from DATA_TABLE where sensor = ? order by time desc limit 1;
+              from DATA_TABLE where sensor = "#{id}" order by time desc limit 1;
         EOQ
 
         ret = {
@@ -95,23 +91,22 @@ module EnvLog
 
       def get_time_series_data(id, tm, span)
         if tm.zero?
-          rows = @db.execute2(<<~EOQ, id, "now")
+          rows = @db.query(<<~EOQ, :as => :array)
             select time, temp, humidity, `air-pres` from DATA_TABLE
-                where sensor = ? and
-                      time >= datetime(?, "localtime", "-#{span} seconds");
+                where sensor = "#{id}" and
+                      time >= (NOW() - interval #{span} second);
           EOQ
         else
-          rows = @db.execute2(<<~EOQ, id, tm, tm)
+          rows = @db.query(<<~EOQ, :as => :array)
             select time, temp, humidity, `air-pres` from DATA_TABLE
-                where sensor = ? and
-                    time >= datetime(?, "localtime") and
-                    time <= datetime(?, "localtime", "+#{span} seconds");
+                where sensor = "#{id}" and
+                      time >= "#{tm}" and
+                      time <= (#{tm} + interval #{span} seconds);
           EOQ
         end
 
         ret = {:time => [], :temp => [], :hum => [], :"a/p" => []}
 
-        rows.shift
         rows.each { |row|
           ret[:time]  << row[0]
           ret[:temp]  << row[1]
@@ -123,7 +118,7 @@ module EnvLog
       end
 
       def poll_sensor
-        rows = @db.execute(<<~EOQ)
+        @db.query(<<~EOQ, :as => :array)
           select id, mtime from SENSOR_TABLE where addr is not NULL;
         EOQ
 
@@ -132,4 +127,3 @@ module EnvLog
     end
   end
 end
-

@@ -7,59 +7,140 @@ body {
   height: 100%;
 }
 
-table#sensor-table > thead {
-  th.sensor-num {
+table#sensor-table {
+  .sensor-num {
     width: 1rem;
   }
 
-  th.sensor-id {
-    width: 12rem;
+  .last-update {
+    width: 14rem;
   }
 
-  th.regist-date {
-    width: 12rem;
+  .temperature {
+    width: 5em;
   }
 
-  th.sensor-state {
-    width: 6rem;
+  .humidity {
+    width: 5em;
   }
 
-  th.sensor-description {
+  .air-pressure {
+    width: 5em;
   }
+
+  .vbat {
+    width: 4em;
+  }
+
+  .vbus {
+    width: 4em;
+  }
+
+  .state {
+    width: 8em;
+  }
+
+  .description {
+  }
+}
+
+table#sensor-table > thead {
+  th.temperature {
+    text-align: center;
+  }
+
+  th.humidity {
+    text-align: center;
+  }
+
+  th.air-pressure {
+    text-align: center;
+  }
+
+  th.vbat {
+    text-align: center;
+  }
+
+  th.vbus {
+    text-align: center;
+  }
+
 }
 
 table#sensor-table > tbody {
   counter-reset: sensor-num 0;
 
+  tr {
+    counter-increment: sensor-num;
+  }
 
-  td.sensor-num:before {
+  td.sensor-num > a:before {
     content: counter(sensor-num);
   }
 
   td.sensor-num {
-    counter-increment: sensor-num;
-    width: 1rem;
-  }
-
-  td.sensor-id {
     font-family: "Roboto mono";
-    display: inline-block;
-    width: 12rem;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
   }
 
-  td.regist-date {
-    font-family: Roboto;
-    width: 12rem;
+  td.last-update {
+    font-family: "Roboto mono";
   }
 
-  td.sensor-state {
-    width: 6rem;
+  td.temperature {
+    font-family: "Roboto mono";
+    text-align: right;
   }
 
-  td.sensor-description {
+  td.temperature:after {
+    content: "\2103";
+    font-size: 75%;
+  }
+
+  td.humidity {
+    font-family: "Roboto mono";
+    text-align: right;
+  }
+
+  td.humidity:after {
+    content: "\0025";
+    font-size: 75%;
+  }
+
+  td.air-pressure {
+    font-family: "Roboto mono";
+    text-align: right;
+  }
+
+  td.air-pressure:after {
+    content: "hPa";
+    font-size: 75%;
+  }
+
+  td.vbat {
+    font-family: "Roboto mono";
+    text-align: right;
+  }
+
+  td.vbat:after {
+    content: "V";
+    font-size: 75%;
+  }
+
+  td.vbus {
+    font-family: "Roboto mono";
+    text-align: right;
+  }
+
+  td.vbus:after {
+    content: "V";
+    font-size: 75%;
+  }
+
+  td.state {
+    font-family: "Roboto mono";
+  }
+
+  td.description {
     font-family: Roboto;
   }
 }

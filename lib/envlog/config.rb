@@ -13,6 +13,7 @@ require 'json_schemer'
 module EnvLog
   module Config
     using DeepFreezer
+    using KeyConverter
 
     class InvalidData < StandardError
       def initialize(msg, diag)
@@ -24,17 +25,17 @@ module EnvLog
 
     class << self
       def read(path)
-        ret  = YAML.load_file(path)
+        data = YAML.load_file(path)
 
-        sch  = JSONSchemer.schema(SCHEMA["CONFIG"])
-        diag = sch.validate(ret).to_a
+        diag = Schema.validate(:CONFIG, data)
         if not diag.empty?
           raise InvalidData.new("invalid configuration", diag)
         end
 
-        ret.deep_freeze
+        data.symbolize_keys!
+        data.deep_freeze
 
-        return ret
+        @config = data
 
       rescue YAML::SyntaxError => e
         STDERR.print("#{e.message}\n")
@@ -52,9 +53,25 @@ module EnvLog
         exit 1
       end
 
+      def [](key)
+        raise("configuration data not read yet") if not @config
+        return @config[key]
+      end
+
+      def dig(*keys)
+        raise("configuration data not read yet") if not @config
+        return @config.dig(*keys)
+      end
+
       def fetch_path(*key)
-        ret = CONFIG.dig(*key)
+        raise("configuration data not read yet") if not @config
+        ret = @config.dig(*key)
         return ret && Pathname.new(File.expand_path(ret))
+      end
+
+      def has?(*keys)
+        raise("configuration data not read yet") if not @config
+        return @config.dig(*keys).!.!
       end
     end
   end

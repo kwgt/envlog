@@ -34,14 +34,9 @@ module EnvLog
         end
         private :threads
 
-        def schema
-          return @schema ||= JSONSchemer.schema(SCHEMA["INPUT_DATA"])
-        end
-        private :schema
-
         def put_data(json)
           data = JSON.parse(json)
-          raise InvalidData.new(data) if not schema.valid?(data)
+          raise InvalidData.new(data) if not Schema.valid?(:INPUT_DATA, data)
 
           DBA.put_data(data)
 
@@ -51,7 +46,7 @@ module EnvLog
         private :put_data
 
         def add_source(src)
-          case src["type"]
+          case src[:type]
           when "serial"
             add_serial_source(src)
 
