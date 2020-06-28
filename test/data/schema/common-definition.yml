@@ -1,0 +1,41 @@
+definition:
+  - &UUID1_PATTERN
+    "^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
+  - &UUID4_PATTERN
+    "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
+  - &DATETIME_PATTERN
+    "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
+
+  - &BT_ADDR_PATTERN
+    "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
+
+  - &UUID1
+    type: string
+    pattern: *UUID1_PATTERN
+
+  - &UUID4
+    type: string
+    pattern: *UUID4_PATTERN
+
+  - &DATE_TIME
+    type: string
+    pattern: *DATETIME_PATTERN
+
+  - &BT_ADDR:
+    type: string
+    pattern: *BT_ADDR_PATTERN
+
+  - &DEVICE_ADDR
+    oneOf:
+      - <<: *BT_ADDR
+
+  - &POWER_SOURCE
+    type: string
+    enum: ["BATTERY", "STABLE"]
+
+  - &SENSOR_STATE
+    type: string
+    enum: ["READY", "NORMAL", "DEAD-BATTERY", "STALL", "CLOSED"]
+

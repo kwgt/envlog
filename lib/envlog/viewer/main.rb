@@ -11,7 +11,7 @@ require 'eventmachine'
 
 module EnvLog
   module Viewer
-    POLL_INTERVAL = 10
+    POLL_INTERVAL = 30
 
     class << self
       def start

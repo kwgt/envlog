@@ -18,8 +18,9 @@ class String
   end
 end
 
-BASE_DIR    = Pathname.new(__FILE__).dirname + ".."
+BASE_DIR    = Pathname.new(File.expand_path(__FILE__)).dirname.parent.parent
 DATA_DIR    = BASE_DIR + "data"
+LIB_DIR     = BASE_DIR + "lib" + "envlog"
 SCHEMA_FILE = DATA_DIR + "schema.yml"
 
 require "#{LIB_DIR + "version"}"
@@ -51,10 +52,10 @@ else
   raise("MySQL configuration is not specified")
 end
 
-addr  = ARGV[1]
+addr  = ARGV[0]
 id    = SecureRandom.uuid
-descr = ARGV[2]
-psrc  = ARGV[3]
+descr = ARGV[1]
+psrc  = ARGV[2]
 
 if not ["STABLE", "BATTERY", "NONE"].include?(psrc.upcase)
   raise("invalid foreign power source type")
@@ -76,7 +77,9 @@ begin
                 NOW(),
                 NOW(),
                 #{descr.to_mysql},
-                #{psrc.upcase});
+                "#{psrc.upcase}",
+                "READY",
+                NULL);
 	EOQ
 
   db.query("commit;")

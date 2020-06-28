@@ -143,3 +143,11 @@ module KeyConverter
   end
 end
 
+module TimeStringFormatChanger
+  refine Time do
+    # SQLite3の返すフォーマットに合わせる
+    def to_s
+      return self.strftime("%Y-%m-%d %H:%M:%S")
+    end
+  end
+end

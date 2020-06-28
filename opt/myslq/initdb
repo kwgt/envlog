@@ -58,6 +58,7 @@ begin
                                        /* 登録日時                           */
       mtime        timestamp default CURRENT_TIMESTAMP,
                                        /* 更新日時                           */
+      descr        text,               /* 端末概要                           */
       `pow-source` varchar(16),        /* 外部電源の種別                     */
       state        varchar(16),        /* 状態                               */
       `last-seq`   integer,            /* 最終シーケンス番号                 */
