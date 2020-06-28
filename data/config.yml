@@ -22,15 +22,16 @@ source:
     baud:      115200
     data_bits: 8
 
-  #- type: udp
-  #  port: 1234
+  - type:      udp
+    bind:      "::"
+    port:      1234
 
 #
 # viewerのwebサーバの設定
 # ※envlog-viewerのみ参照します
 #
 webserver:
-  bind:        "::/0"
+  bind:        "::"
   port:       
     http:      2564
     ws:        2565
