@@ -40,12 +40,10 @@
 #include <WiFiUdp.h>
 #endif /* defined(USE_WIFI) */
 
-#define DATA_FORMAT_VERSION   2
+#define DATA_FORMAT_VERSION   3
 #define T_PERIOD              1         // Transmission period
 #define S_PERIOD              9       // Sleeping period
                              
-#define M5STICK_PIN_LED       10
-
 #define LO_BYTE(x)            (uint8_t)(((x) >> 0) & 0xff)
 #define HI_BYTE(x)            (uint8_t)(((x) >> 8) & 0xff)
 
@@ -102,8 +100,11 @@ send_data()
 {
   BLEAdvertisementData adat = BLEAdvertisementData();
   std::string data;
+  uint8_t mac[6];
 
   adat.setFlags(0x06);
+
+  esp_efuse_mac_get_default(mac);
 
   data = "";
   data += (uint8_t)0x0f;
@@ -112,6 +113,12 @@ send_data()
   data += HI_BYTE(MANUFACTURER_ID);
   data += (uint8_t)DATA_FORMAT_VERSION;
   data += (uint8_t)seq;
+  data += mac[0];
+  data += mac[1];
+  data += mac[2];
+  data += mac[3];
+  data += mac[4];
+  data += mac[5];
   data += LO_BYTE(temp);
   data += HI_BYTE(temp);
   data += LO_BYTE(hum);
@@ -158,11 +165,11 @@ send_data()
 {
   uint8_t buf[18];
 
-  
-  esp_efuse_mac_get_default(buf + 0);
+  buf[0]  = (uint8_t)DATA_FORMAT_VERSION;
+  buf[1]  = (uint8_t)seq;
 
-  buf[6]  = (uint8_t)DATA_FORMAT_VERSION;
-  buf[7]  = (uint8_t)seq;
+  esp_efuse_mac_get_default(buf + 2);
+
   buf[8]  = LO_BYTE(temp);
   buf[9]  = HI_BYTE(temp);
   buf[10] = LO_BYTE(hum);
