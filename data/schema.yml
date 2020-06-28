@@ -134,7 +134,7 @@ CONFIG:
             bind:
               description: >-
                 UDPの待ち受けアドレスを指定します。
-                ※省略した場合は::/0で待ち受けます
+                ※省略した場合は"::"で待ち受けます
               type: string
             port:
               description: >-
