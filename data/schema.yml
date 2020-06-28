@@ -300,7 +300,10 @@ INPUT_DATA:
     rssi:
       description: >-
         センサーからの信号の受信強度が格納されます。
-      type: integer
+        ※現時点ではBluetoothデバイス以外ではnullが格納されます
+      oneOf:
+        - type: integer
+        - type: "null"
 
     vbat:
       description: >-
