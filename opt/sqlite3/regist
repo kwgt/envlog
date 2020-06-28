@@ -35,10 +35,10 @@ EnvLog::Config.read($config_file)
 
 raise("arguments not enough") if ARGV.size < 3
 
-addr  = ARGV[1]
+addr  = ARGV[0]
 id    = SecureRandom.uuid
-descr = ARGV[2]
-psrc  = ARGV[3]
+descr = ARGV[1]
+psrc  = ARGV[2]
 
 if EnvLog::Config.has?(:database, :sqlite3)
   db_path = EnvLog::Config.fetch_path(:database, :sqlite3, :path)
@@ -63,7 +63,7 @@ begin
                 datetime('now', 'localtime'),
                 ?,
                 ?,
-                NULL,
+                "READY",
                 NULL);
   EOQ
 

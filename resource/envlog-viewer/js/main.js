@@ -7,6 +7,38 @@
 (function () {
   var session;
 
+  function lookupStateClass(val) {
+    var ret;
+
+    switch (val) {
+      case "READY":
+        ret = "state-ready";
+        break;
+
+      case "NORMAL":
+        ret = "state-normal";
+        break;
+
+      case "DEAD-BATTERY":
+        ret = "state-dead-battery";
+        break;
+
+      case "STALL":
+        ret = "state-stall";
+        break;
+
+      case "CLOSED":
+        ret = "state-closed";
+        break;
+
+      default:
+        throw("really?");
+        break;
+    }
+
+    return ret;
+  }
+
   function updateSensorRow(id) {
     session.getLatestSensorValue(id)
       .then((info) => {
@@ -29,12 +61,20 @@
             .end()
             .find('td.vbus')
               .text(sprintf("%4.2f", info["vbus"]))
+            .end()
+            .find('td.state')
+              .removeClass()
+              .addClass('state')
+              .addClass(lookupStateClass(info["state"]))
             .end();
       });
   }
 
   function setSensorTable(list) {
     list.forEach((info) => {
+      let $state;
+
+
       $('table#sensor-table > tbody')
         .append($('<tr>')
           .attr("data-sensor-id", info["id"])
@@ -70,7 +110,7 @@
           )
           .append($('<td>')
             .addClass('state')
-            .text(info["state"])
+            .addClass(lookupStateClass(info["state"]))
           )
           .append($('<td>')
             .addClass('description')

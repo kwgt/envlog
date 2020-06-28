@@ -1,0 +1,55 @@
+<%= YAML::include("common-definition.yml") %>
+
+RESULT(get_alives):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'get_sensor_info()'
+  type: array
+  items:
+    type: object
+    require:
+      - addr
+      - id
+    properties:
+      addr:
+        <<: *DEVICE_ADDR
+      id:
+        <<: *UUID4
+    addtionalProperties: false
+
+RESULT(get_sensor_info):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'get_sensor_info()'
+  type: object
+  requried:
+    - id
+    - powsrc
+    - state
+  properties:
+    id:
+      <<: *UUID4
+    powsrc:
+      <<: *POWER_SOURCE
+    state:
+      <<: *SENSOR_STATE
+  addtionalProperties: false
+
+RESULT(poll_sensor):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'poll_sensor()'
+  type: object
+  patternProperties:
+    *UUID4_PATTERN:
+      type: object
+      required:
+        - mtime
+        - state
+      properties:
+        mtime:
+          <<: *DATE_TIME
+        state:
+          <<: *SENSOR_STATE
+      addtionalProperties: false
+  addtionalProperties: false

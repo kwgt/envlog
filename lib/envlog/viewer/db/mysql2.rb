@@ -13,9 +13,10 @@ require "#{LIB_DIR}/mysql2"
 module EnvLog
   module Viewer
     class DBA
-      DB_CRED = Config.dig(:database, :mysql)
-
       using Mysql2Extender
+      using TimeStringFormatChanger
+
+      DB_CRED = Config.dig(:database, :mysql)
 
       class << self
         def open
@@ -26,6 +27,10 @@ module EnvLog
         end
 
         undef :new
+      end
+
+      def time_str(tm)
+        tm.strftime("%Y-%m-%d %H:%M:%S")
       end
 
       def close
@@ -54,8 +59,8 @@ module EnvLog
         ret = rows.inject([]) { |m, n|
           m << {
             :id    => n[0],
-            :ctime => n[1],
-            :mtime => n[2],
+            :ctime => n[1].to_s,
+            :mtime => n[2].to_s,
             :descr => n[3],
             :state => n[4],
             :temp  => n[5],
@@ -73,11 +78,12 @@ module EnvLog
       def get_latest_value(id)
         row = @db.get_first_row(<<~EOQ, :as => :array)
           select time, temp, humidity, `air-pres`, rssi, vbat, vbus
-              from DATA_TABLE where sensor = "#{id}" order by time desc limit 1;
+              from DATA_TABLE
+              where sensor = "#{id}" order by time desc limit 1;
         EOQ
 
         ret = {
-          :time  => row[0],
+          :time  => row[0].to_s,
           :temp  => row[1],
           :hum   => row[2],
           :"a/p" => row[3],
@@ -108,7 +114,7 @@ module EnvLog
         ret = {:time => [], :temp => [], :hum => [], :"a/p" => []}
 
         rows.each { |row|
-          ret[:time]  << row[0]
+          ret[:time]  << row[0].to_s
           ret[:temp]  << row[1]
           ret[:hum]   << row[2]
           ret[:"a/p"] << row[3]
@@ -118,11 +124,11 @@ module EnvLog
       end
 
       def poll_sensor
-        @db.query(<<~EOQ, :as => :array)
+        rows = @db.query(<<~EOQ, :as => :array)
           select id, mtime from SENSOR_TABLE where addr is not NULL;
         EOQ
 
-        return rows.inject({}) {|m, n| m[n[0]] = n[1]; m}
+        return rows.inject({}) {|m, n| m[n[0]] = n[1].to_s; m}
       end
     end
   end

@@ -1,3 +1,15 @@
+definition:
+  - &BT_ADDR_PATTERN
+    "^([0-9a-f]{2}:){5}[0-9a-f]{2}$" 
+
+  - &BT_ADDR
+    type: string
+    pattern: *BT_ADDR_PATTERN
+
+  - &DEVICE_ADDR
+    oneOf:
+      - *BT_ADDR
+
 CONFIG:
   $schema: http://json-schema.org/draft-07/schema#
   description: >-
@@ -254,7 +266,7 @@ INPUT_DATA:
     addr:
       description: >-
         センサーのアドレス情報が格納されます。
-      type: string
+      <<: *DEVICE_ADDR
 
     seq:
       description: >-
@@ -299,7 +311,7 @@ INPUT_DATA:
 
     vbus:
       description: >-
-        センサー内蔵のバッテリーの電圧が格納されます。
+        外部電源の電圧が格納されます。
       type: number
       minimum: 0.0
       maximum: 10.0

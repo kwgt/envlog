@@ -8,21 +8,23 @@ require 'json_schemer'
 require_relative '../../lib/common'
 require_relative '../../lib/rpc_client'
 
-require "#{PKG_LIB_DIR}/viewer/db"
-require "#{PKG_LIB_DIR}/viewer/websock"
+require "#{LIB_DIR}/viewer/db"
+require "#{LIB_DIR}/viewer/websock"
 
 Thread.abort_on_exception = true
 
 class TestRpcProcedure < Test::Unit::TestCase
+  using YAMLExtender
+
   SCHEMA_PATH = TEST_DATA_DIR + "schema" + "viewer" + "rpc_proc.yml"
 
   class << self
     def startup
       EnvLog::Viewer::WebSocket.start(EnvLog::Viewer)
       Thread.fork {EM.run}
-      sleep(1)
+      sleep(2)
 
-      @@schema = YAML.load_file(SCHEMA_PATH)
+      @@schema = YAML.load_erb(SCHEMA_PATH)
     end
 
     def shutdown
@@ -59,8 +61,6 @@ class TestRpcProcedure < Test::Unit::TestCase
   #
   test "call get_sensor_list()" do
     res = @port.call(:get_sensor_list)
-
-    pp res if $DEBUG
     assert_true(check("RESULT(get_sensor_list)", res))
   end
 
@@ -70,8 +70,6 @@ class TestRpcProcedure < Test::Unit::TestCase
   test "call get_latest_sensor_value()" do
     res = @port.call(:get_sensor_list)
     res = @port.call(:get_latest_sensor_value, res.dig(0, "id"))
-
-    pp res if $DEBUG
     assert_true(check("RESULT(get_latest_sensor_value)", res))
   end
 end
