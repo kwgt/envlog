@@ -12,7 +12,7 @@ require 'socket'
 module EnvLog
   module Logger
     module InputSource
-      SUPPORT_FORMAT_VERSION = 2
+      SUPPORTED_FORMAT_VERSION = 3
 
       JSON_FORMAT = <<~EOT.gsub(/\s/, "")
         {
@@ -29,7 +29,13 @@ module EnvLog
 
       class << self
         def add_udp_source(src)
-          Log.info(tty) {"add UDP input source"}
+          if src[:bind].include?(":")
+            ep = "UDP([#{src[:bind]}]:#{src[:port]})"
+          else
+            ep = "UDP(#{src[:bind]}:#{src[:port]})"
+          end
+
+          Log.info(ep) {"add UDP input source"}
 
           sock = UDPSocket.open()
           sock.bind(src[:bind] || "::", src[:port])
@@ -37,18 +43,20 @@ module EnvLog
           loop {
             begin
               dat = sock.recv(1024)
-              tmp = dat.unpack("C6CCs<S<S<S<S<")
+              tmp = dat.unpack("CCC6s<S<S<S<S<")
 
-              next if tmp[6] != SUPPORT_FORMAT_VERSION
+              next if tmp[0] != SUPPORTED_FORMAT_VERSION
 
               json = JSON_FORMAT %
-                      [tmp[0], tmp[1], tmp[2], tmp[3], tmp[4], tmp[5],
-                       tmp[7],
+                      [tmp[2], tmp[3], tmp[4], tmp[5], tmp[6], tmp[7],
+                       tmp[1],
                        tmp[8]  / 100.0,
                        tmp[9]  / 100.0,
                        tmp[10] / 10.0,
                        tmp[11] / 100.0,
                        tmp[12] / 100.0]
+
+              Log.debug(ep) {"receive: #{json.dump}"}
 
               put_data(json)
 
@@ -58,7 +66,7 @@ module EnvLog
           }
 
           sock.close
-          Log.info(tty) {"exit UDP input thread"}
+          Log.info(ep) {"exit UDP input thread"}
         end
         private :add_udp_source
       end
