@@ -46,7 +46,7 @@ loop()
 
   std::string dat;
   uint8_t* cstr;
-  char addr[16];
+  char addr[24];
   int seq;
   float temp;
   float hum;
@@ -65,7 +65,7 @@ loop()
     if (!dev.haveManufacturerData()) continue;
 
     dat  = dev.getManufacturerData();
-    cstr = (dat.c_str();)
+    cstr = (uint8_t*)dat.c_str();
 
     if (U16(cstr + 0) != MANUFACTURER_ID) continue;
     if (cstr[2] != DATA_FORMAT_VERSION) continue;

@@ -109,13 +109,20 @@ module EnvLog
 
               db.query(<<~EOQ, *args)
                 insert into DATA_TABLE
-                    values(?, datetime(?, 'localtime'), ?, ?, ?, ?, ?, ?);
+                    values(?,
+                           datetime(?, 'unixepoch', 'localtime'),
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?);
               EOQ
 
               db.query(<<~EOQ, d['seq'], now, s, id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
-                        mtime = datetime(?, 'localtime'),
+                        mtime = datetime(?, 'unixepoch', 'localtime'),
                         state = ?
                     where id = ?;
               EOQ
@@ -141,8 +148,9 @@ module EnvLog
         def set_stall(id)
           mutex.synchronize {
             begin
-              db.trasaction
-              eb.execute(<<~EOQ, id)
+              db.transaction
+
+              db.execute(<<~EOQ, id)
                 update SENSOR_TABLE
                     set mtime = datetime('now', 'localtime'),
                         state = "STALL"

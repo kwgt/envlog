@@ -77,7 +77,6 @@ uint16_t vbus;
 void
 setup_comm()
 {
-  setup_ble();
   BLEDevice::init(DEVICE_NAME);
 
   server      = BLEDevice::createServer();
@@ -96,7 +95,7 @@ send_data()
   esp_efuse_mac_get_default(mac);
 
   data = "";
-  data += (uint8_t)0x0f;
+  data += (uint8_t)21;
   data += (uint8_t)0xff; // AD Type 0xFF: Manufacturer specific data
   data += LO_BYTE(MANUFACTURER_ID);
   data += HI_BYTE(MANUFACTURER_ID);
@@ -180,17 +179,19 @@ void
 setup()
 {
 #ifdef ENABLE_LCD
-  M5.begin(true, false, false);
+  M5.begin(true, true, false);
   M5.Axp.ScreenBreath(8);
   M5.Lcd.setRotation(3);
   M5.Lcd.setTextFont(4);
   M5.Lcd.setTextSize(1);
   M5.Lcd.fillScreen(BLACK);
-#else /* defined(ENABLE_LCD) */
+#endif /* defined(ENABLE_LCD) */
+
+#ifndef ENABLE_LCD
   M5.begin(false, false, false);
   M5.Axp.ScreenBreath(0);
   M5.Axp.SetLDO2(false);
-#endif /* defined(ENABLE_LCD) */
+#endif /* !defined(ENABLE_LCD) */
 
   esp_sleep_enable_timer_wakeup(S_PERIOD * 1000000);
   setCpuFrequencyMhz(80);
@@ -199,9 +200,11 @@ setup()
 
 #ifdef ENABLE_LED
   pinMode(M5STICK_PIN_LED, OUTPUT);
-#else /* defined(ENABLE_LED) */
-  pinMode(M5STICK_PIN_LED, INPUT_PULLDOWN);
 #endif /* defined(ENABLE_LED) */
+
+#ifndef ENABLE_LED
+  pinMode(M5STICK_PIN_LED, INPUT_PULLDOWN);
+#endif /* !defined(ENABLE_LED) */
 
   while (!bme.begin(0x76)) {
 #ifdef ENABLE_LCD
@@ -234,12 +237,15 @@ loop()
 
 #ifdef ENABLE_LCD
   M5.Lcd.setCursor(0, 0, 1);
-  M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%\n", temp / 100.0, hum / 100.0);
-  M5.Lcd.printf("Air-pressure: %4.0fhPa\n", pres / 10.0);
-  M5.Lcd.printf("VBat: %4.1fV VBus: %4.1fV\n", vbat / 100.0, vbus / 100.0);
-#endif /* !defined(ENABLE_LCD) */
+  M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%\n",
+                temp / 100.0, hum / 100.0);
 
-  set_advertising_data();
+  M5.Lcd.printf("Air-pressure: %4.0fhPa\n",
+                pres / 10.0);
+
+  M5.Lcd.printf("VBat: %4.1fV VBus: %4.1fV\n",
+                vbat / 100.0, vbus / 100.0);
+#endif /* !defined(ENABLE_LCD) */
 
 #ifdef ENABLE_LED
   digitalWrite(M5STICK_PIN_LED, LOW);

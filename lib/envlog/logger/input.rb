@@ -53,16 +53,24 @@ module EnvLog
           raise InvalidData.new(data) if not Schema.valid?(:INPUT_DATA, data)
 
           info = DBA.get_sensor_info(data["addr"])
-          if info and info["state"] != "CLOSED"
-            case info["powsrc"]
-            when "STABLE"
-              state = "NORMAL"
 
-            when "BATTERY"
-              state = (vbus > 4.0)? "NORMAL": "DEAD-BATTERY"
+          if info
+            if info[:state] != "CLOSED"
+              case info[:powsrc]
+              when "STABLE"
+                state = "NORMAL"
+
+              when "BATTERY"
+                state = (vbus > 4.0)? "NORMAL": "DEAD-BATTERY"
+              end
+
+              DBA.put_data(data, state)
             end
 
-            DBA.put_data(data, state)
+          else
+            Log.error("input") {
+              "data received from unknown device (#{data["addr"]})"
+            }
           end
 
         rescue JSON::ParserError
@@ -77,14 +85,13 @@ module EnvLog
             begin
               sleep(MONITOR_INTERVAL)
 
+              now = Time.now
+
               DBA.poll_sensor.each { |id, info|
                 next if info[:state] != "NORMAL"
 
-                tm = Time.parse(info[:mtime])
-
-                if tm - sensor_tbl[id] > STALL_THRESHOLD
+                if now - Time.parse(info[:mtime]) > STALL_THRESHOLD
                   DBA.set_stall(id)
-                  sensor_tbl[id] = tm
                 end
               }
 

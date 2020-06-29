@@ -8,5 +8,5 @@
 #
 
 module EnvLog
-  VERSION = "0.2.0d2"
+  VERSION = "0.2.0d6"
 end

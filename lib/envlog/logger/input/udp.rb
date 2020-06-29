@@ -7,6 +7,7 @@
 #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
 #
 
+require 'ipaddr'
 require 'socket'
 
 module EnvLog
@@ -29,16 +30,18 @@ module EnvLog
 
       class << self
         def add_udp_source(src)
-          if src[:bind].include?(":")
-            ep = "UDP([#{src[:bind]}]:#{src[:port]})"
+          addr = IPAddr.new(src[:bind] || "::")
+
+          if addr.ipv6?
+            ep = "UDP([#{addr}]:#{src[:port]})"
           else
-            ep = "UDP(#{src[:bind]}:#{src[:port]})"
+            ep = "UDP(#{addr}:#{src[:port]})"
           end
 
           Log.info(ep) {"add UDP input source"}
 
-          sock = UDPSocket.open()
-          sock.bind(src[:bind] || "::", src[:port])
+          sock = UDPSocket.open(addr.family)
+          sock.bind(addr.to_s, src[:port])
 
           loop {
             begin
