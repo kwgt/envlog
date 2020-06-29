@@ -44,16 +44,23 @@ module EnvLog
           raise InvalidData.new(data) if not Schema.valid?(:INPUT_DATA, data)
 
           info = DBA.get_sensor_info(data["addr"])
-          if info and info[:state] != "CLOSED"
-            case info[:powsrc]
-            when "STABLE"
-              state = "NORMAL"
+          if info
+            if info[:state] != "CLOSED"
+              case info[:powsrc]
+              when "STABLE"
+                state = "NORMAL"
 
-            when "BATTERY"
-              state = (vbus > 4.0)? "NORMAL": "DEAD-BATTERY"
+              when "BATTERY"
+                state = (vbus > 4.0)? "NORMAL": "DEAD-BATTERY"
+              end
+
+              DBA.put_data(data, state)
             end
 
-            DBA.put_data(data, state)
+          else
+            Log.error("input") {
+              "data received from unknown device (#{data["addr"]})"
+            }
           end
 
         rescue JSON::ParserError
