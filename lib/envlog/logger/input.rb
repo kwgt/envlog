@@ -55,7 +55,8 @@ module EnvLog
           info = DBA.get_sensor_info(data["addr"])
 
           if info
-            if info[:state] != "CLOSED"
+            case info[:state]
+            when "READY", "NORMAL", "DEAD-BATTERY", "STALL"
               case info[:powsrc]
               when "STABLE"
                 state = "NORMAL"
@@ -64,13 +65,15 @@ module EnvLog
                 state = (vbus > 4.0)? "NORMAL": "DEAD-BATTERY"
               end
 
-              DBA.put_data(data, state)
+              DBA.put_data(info[:id], data, state)
+
+            when "UNKNOWN"
+              DBA.update_timestamp(info[:id])
             end
 
           else
-            Log.error("input") {
-              "data received from unknown device (#{data["addr"]})"
-            }
+            Log.error("input") {"found unknown device (#{data["addr"]})"}
+            DBA.regist_unknown(data["addr"])
           end
 
         rescue JSON::ParserError
