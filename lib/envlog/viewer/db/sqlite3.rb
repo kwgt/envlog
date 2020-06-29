@@ -18,7 +18,7 @@ module EnvLog
         def open
           db  = SQLite3::Database.new(DB_PATH.to_s)
           db.busy_handler {
-            $logger.error("db") {"databse access is conflict, retry"}
+            Log.error("db") {"databse access is conflict, retry"}
             sleep(0.1)
             true
           }
