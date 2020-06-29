@@ -88,7 +88,6 @@ set_led(CRGB c)
 void
 setup_comm()
 {
-  setup_ble();
   BLEDevice::init(DEVICE_NAME);
 
   server      = BLEDevice::createServer();
@@ -107,7 +106,7 @@ send_data()
   esp_efuse_mac_get_default(mac);
 
   data = "";
-  data += (uint8_t)0x0f;
+  data += (uint8_t)21;
   data += (uint8_t)0xff; // AD Type 0xFF: Manufacturer specific data
   data += LO_BYTE(MANUFACTURER_ID);
   data += HI_BYTE(MANUFACTURER_ID);

@@ -34,7 +34,51 @@ module EnvLog
         end
         private :mutex
 
-        def put_data(d)
+        def get_alives
+          rows = mutex.synchronize {
+            db.execute(<<~EOQ)
+              select addr, id from SENSOR_TABLE where addr is not NULL;
+            EOQ
+          }
+
+          return rows.inject([]) {|m, n| m << {:addr => n[0], :id => n[1]}}
+        end
+
+        def get_sensor_info(addr)
+          row = mutex.synchronize {
+            db.get_first_row(<<~EOQ, addr)
+              select id, `pow-source`, state
+                  from SENSOR_TABLE where addr = ?;
+            EOQ
+          }
+
+          if row
+            ret = {
+              :id     => row[0],
+              :powsrc => row[1],
+              :state  => row[2],
+            }
+
+          else
+            row = nil
+          end
+
+          return ret
+        end
+
+        def poll_sensor
+          rows = db.execute(<<~EOQ)
+            select id, mtime, state from SENSOR_TABLE where addr is not NULL;
+          EOQ
+
+          ret = rows.inject({}) { |m, n|
+            m[n[0]] = {:mtime => n[1], :state => n[2]}; m
+          }
+
+          return ret
+        end
+
+        def put_data(d, s)
           mutex.synchronize {
             begin
               db.transaction
@@ -51,8 +95,11 @@ module EnvLog
 
               raise(NotUpdated) if d["seq"] == seq
 
+              now  = Time.now.to_i
+
               args = [
                 id,
+                now,
                 d["temp"],
                 d["hum"],
                 d["a/p"],
@@ -63,13 +110,21 @@ module EnvLog
 
               db.query(<<~EOQ, *args)
                 insert into DATA_TABLE
-                    values(?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?);
+                    values(?,
+                           datetime(?, 'unixepoch', 'localtime'),
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?);
               EOQ
 
-              db.query(<<~EOQ, d['seq'], id)
+              db.query(<<~EOQ, d['seq'], now, s, id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
-                        mtime = datetime('now', 'localtime')
+                        mtime = datetime(?, 'unixepoch', 'localtime'),
+                        state = ?
                     where id = ?;
               EOQ
 
@@ -83,6 +138,27 @@ module EnvLog
                 "unregister sensor requested (#{d["addr"]})"
               }
               db.rollback
+
+            rescue => e
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def set_stall(id)
+          mutex.synchronize {
+            begin
+              db.transaction
+
+              db.execute(<<~EOQ, id)
+                update SENSOR_TABLE
+                    set mtime = datetime('now', 'localtime'),
+                        state = "STALL"
+                    where id = ?;
+              EOQ
+
+              db.commit
 
             rescue => e
               db.rollback
