@@ -8,6 +8,7 @@
 #
 
 require 'sqlite3'
+require 'securerandom'
 
 module EnvLog
   module Logger
@@ -78,33 +79,27 @@ module EnvLog
           return ret
         end
 
-        def put_data(d, s)
+        def put_data(id, data, state)
           mutex.synchronize {
             begin
               db.transaction
-
-              id   = db.get_first_value(<<~EOQ, d["addr"])
-                select id from SENSOR_TABLE where addr = ?;
-              EOQ
-
-              raise(NotRegisterd) if not id
 
               seq  = db.get_first_value(<<~EOQ, id)
                 select `last-seq` from SENSOR_TABLE where id = ?;
               EOQ
 
-              raise(NotUpdated) if d["seq"] == seq
+              raise(NotUpdated) if data["seq"] == seq
 
               now  = Time.now.to_i
               args = [
                 id,
                 now,
-                d["temp"],
-                d["hum"],
-                d["a/p"],
-                d["rssi"],
-                d["vbat"],
-                d["vbus"]
+                data["temp"],
+                data["hum"],
+                data["a/p"],
+                data["rssi"],
+                data["vbat"],
+                data["vbus"]
               ]
 
               db.query(<<~EOQ, *args)
@@ -119,7 +114,7 @@ module EnvLog
                            ?);
               EOQ
 
-              db.query(<<~EOQ, d['seq'], now, s, id)
+              db.query(<<~EOQ, d['seq'], now, state, id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
                         mtime = datetime(?, 'unixepoch', 'localtime'),
@@ -155,6 +150,51 @@ module EnvLog
                     set mtime = datetime('now', 'localtime'),
                         state = "STALL"
                     where id = ?;
+              EOQ
+
+              db.commit
+
+            rescue => e
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def update_timestamp(id)
+          mutex.synchronize {
+            begin
+              db.transaction
+
+              db.execute(<<~EOQ, addr)
+                update SENSOR_TABLE
+                    set mtime = datetime('now', 'localtime') where id = ?;
+              EOQ
+
+              db.commit
+
+            rescue => e
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def regist_unknown(addr)
+          mutex.synchronize {
+            begin
+              db.transaction
+
+              db.execute(<<~EOQ, addr, SecureRandom.uuid)
+                insert into SENSOR_TABLE
+                    values (?,
+                            ?,
+                            datetime('now', 'localtime'),
+                            datetime('now', 'localtime'),
+                            NULL
+                            "UNKNOWN",
+                            "UNKNOWN",
+                            NULL);
               EOQ
 
               db.commit

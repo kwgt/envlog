@@ -8,7 +8,7 @@ definition:
   - &DATETIME_PATTERN
     "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
 
-  - &BT_ADDR_PATTERN
+  - &MAC_ADDR_PATTERN
     "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
 
   - &UUID1
@@ -29,13 +29,21 @@ definition:
 
   - &DEVICE_ADDR
     oneOf:
-      - <<: *BT_ADDR
+      - <<: *MAC_ADDR
 
   - &POWER_SOURCE
     type: string
-    enum: ["BATTERY", "STABLE"]
+    enum:
+      - BATTERY       # 外部電源としてバッテリーを使用
+      - STABLE        # 外部電源として安定化電源を使用
+      - UNKNOWN       # 不明
 
   - &SENSOR_STATE
     type: string
-    enum: ["READY", "NORMAL", "DEAD-BATTERY", "STALL", "CLOSED"]
-
+    enum:
+      - UNKNOWN       # 未登録だがデータ受信を確認した状態
+      - READY         # 登録は済んでいるがまだデータを受信していない状態
+      - NORMAL        # 通常の受信状態
+      - DEAD-BATTERY  # 外部バッテリー切れ（内臓の予備電源で動作中）の状態
+      - STALL         # 停止中（5分以上データの送信が途絶えた状態）
+      - CLOSED        # 登録を除外した状態

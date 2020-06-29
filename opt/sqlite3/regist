@@ -36,7 +36,6 @@ EnvLog::Config.read($config_file)
 raise("arguments not enough") if ARGV.size < 3
 
 addr  = ARGV[0]
-id    = SecureRandom.uuid
 descr = ARGV[1]
 psrc  = ARGV[2]
 
@@ -51,27 +50,55 @@ begin
 
   db.transaction
 
-  db.execute2(<<~EOQ, addr)
-    update SENSOR_TABLE set addr = NULL where addr = ?;
+  row = db.get_first_row(<<~EOQ, addr)
+    select id, state from SENSOR_TABLE where addr = ?;
   EOQ
 
-  db.execute2(<<~EOQ, addr, id, descr, psrc)
-    insert into SENSOR_TABLE
-        values (?,
-                ?,
-                datetime('now', 'localtime'),
-                datetime('now', 'localtime'),
-                ?,
-                ?,
-                "READY",
-                NULL);
-  EOQ
+  if not row
+    #
+    # 新規登録の場合
+    #
+    id = SecureRandom.uuid
+
+    db.execute2(<<~EOQ, addr, id, descr, psrc)
+      insert into SENSOR_TABLE
+          values (?,
+                  ?,
+                  datetime('now', 'localtime'),
+                  datetime('now', 'localtime'),
+                  ?,
+                  ?,
+                  "READY",
+                  NULL);
+    EOQ
+
+  else
+    id = row[0]
+    st = row[1]
+
+    if st == "UNKNOWN" || st == "CLOSED"
+      #
+      # 不明デバイスもしくは除外として登録されていた場合
+      #
+      db.execute2(<<~EOQ, desc, psrc, id)
+        update SENSOR_TABLE
+            set mtime        = NOW(),
+                descr        = ?,
+                `pow-source` = ?,
+                state        = "READY",
+                `last-seq`   = NULL
+            where id = ?;
+      EOQ
+    else
+      raise("device #{addr} is working now")
+    end
+  end
 
   db.commit
 
 rescue => e
-  p e
-  pp e.backtrace
+  STDERR.print(e.message)
+  #pp backtrace
   db.rollback
 
 ensure

@@ -8,6 +8,7 @@
 #
 
 require 'mysql2'
+require 'securerandom'
 require "#{LIB_DIR}/mysql2"
 
 module EnvLog
@@ -138,9 +139,53 @@ module EnvLog
 
           db.query(<<~EOQ)
             update SENSOR_TABLE
-                set mtime = datetime('now', 'localtime'),
-                    state = "STALL"
-                where id = "#{id}";
+                set mtime = NOW(), state = "STALL" where id = "#{id}";
+          EOQ
+
+          db.query("commit;")
+
+        rescue => e
+          db.query("rollback;")
+          raise(e)
+
+        ensure
+          db&.close
+        end
+
+        def update_timestamp(id)
+          db = Mysql2::Client.new(DB_CRED)
+
+          db.query("start transaction;")
+
+          db.query(<<~EOQ)
+            update SENSOR_TABLE set mtime = NOW() when id = "#{id}";
+          EOQ
+
+          db.query("commit;")
+
+        rescue => e
+          db.query("rollback;")
+          raise(e)
+
+        ensure
+          db&.close
+        end
+
+        def regist_unknown(addr)
+          db = Mysql2::Client.new(DB_CRED)
+
+          db.query("start transaction;")
+
+          db.query(<<~EOQ)
+            insert into SENSOR_TABLE
+                values ("#{addr}",
+                        "#{SecureRandom.uuid}",
+                        NOW(),
+                        NOW(),
+                        NULL,
+                        "UNKNOWN",
+                        "UNKNOWN",
+                        NULL);
           EOQ
 
           db.query("commit;")

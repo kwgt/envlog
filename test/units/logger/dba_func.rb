@@ -45,6 +45,9 @@ class TestLoggerDBAFunc < Test::Unit::TestCase
     assert_respond_to(@dba, :get_sensor_info)
     assert_respond_to(@dba, :poll_sensor)
     assert_respond_to(@dba, :put_data)
+    assert_respond_to(@dba, :set_stall)
+    assert_respond_to(@dba, :update_timestamp)
+    assert_respond_to(@dba, :regist_unknown)
   end
 
   #
