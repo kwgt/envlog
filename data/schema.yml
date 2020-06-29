@@ -94,65 +94,66 @@ CONFIG:
     source:
       type: array
       items:
-        - description: >-
-            入力ソースにシリアルポートを指定する場合の設定情報を記述します。
-          type: object
-          required:
-            - type
-            - port
-            - baud
-            - data_bits
+        oneOf:
+          - description: >-
+              入力ソースにシリアルポートを指定する場合の設定情報を記述します。
+            type: object
+            required:
+              - type
+              - port
+              - baud
+              - data_bits
 
-          properties:
-            type:
-              description: >-
-                入力ソース種別を記述します
-                ※シリアルポート入力の場合は"serial"を指定
-              cost: "serial"
+            properties:
+              type:
+                description: >-
+                  入力ソース種別を記述します
+                  ※シリアルポート入力の場合は"serial"を指定
+                const: "serial"
 
-            port:
-              description: >-
-                シリアルのデバイスファイル名を指定します(/dev/ttyUSB0等)
-              type: string
+              port:
+                description: >-
+                  シリアルのデバイスファイル名を指定します(/dev/ttyUSB0等)
+                type: string
 
-            baud:
-              description: >-
-                シリアルの転送速度を指定します(bps)
-              type: integer
-              minimum: 300
-              maximum: 115200
+              baud:
+                description: >-
+                  シリアルの転送速度を指定します(bps)
+                type: integer
+                minimum: 300
+                maximum: 115200
 
-            data_bits:
-              description: >-
-                データビット幅を指定します。
-              type: integer
-              enum: [7, 8]
-          additionalProperties: false
+              data_bits:
+                description: >-
+                  データビット幅を指定します。
+                type: integer
+                enum: [7, 8]
+            additionalProperties: false
 
-        - description: >-
-            入力ソースにUDPを指定する場合の設定情報を記述します。
-          type: object
-          required:
-            - type
-            - port
+          - description: >-
+              入力ソースにUDPを指定する場合の設定情報を記述します。
+            type: object
+            required:
+              - type
+              - port
 
-          properties:
-            type:
-              description: >-
-                入力ソース種別を記述します
-                ※UDP力の場合は"udp"を指定
-              cost: "udp"
+            properties:
+              type:
+                description: >-
+                  入力ソース種別を記述します
+                  ※UDP力の場合は"udp"を指定
+                const: "udp"
 
-            bind:
-              description: >-
-                UDPの待ち受けアドレスを指定します。
-                ※省略した場合は::/0で待ち受けます
-              type: string
-            port:
-              description: >-
-                UDPの待ち受けポートを指定します。
-              type: integer
-          additionalProperties: false
+              bind:
+                description: >-
+                  UDPの待ち受けアドレスを指定します。
+                  ※省略した場合は"::"で待ち受けます
+                type: string
+              port:
+                description: >-
+                  UDPの待ち受けポートを指定します。
+                type: integer
+            additionalProperties: false
 
       minItems: 1
 
@@ -300,13 +301,17 @@ INPUT_DATA:
     rssi:
       description: >-
         センサーからの信号の受信強度が格納されます。
-      type: integer
+        ※現時点ではBluetoothデバイス以外ではnullが格納されます
+      oneOf:
+        - type: integer
+        - type: "null"
 
     vbat:
       description: >-
         センサー内蔵のバッテリーの電圧が格納されます。
+        ※バッテリーを内蔵していない場合0が格納されます
       type: number
-      minimum: 3.0
+      minimum: 0.0
       maximum: 5.0
 
     vbus:

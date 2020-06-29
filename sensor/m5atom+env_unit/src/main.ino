@@ -3,16 +3,14 @@
  *
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
+#undef USE_BLE
+#define USE_WIFI
 
-#define USE_BLE
-#undef USE_WIFI
-
-#undef ENABLE_LCD
 #define ENABLE_LED
 
 #ifdef USE_BLE
 #define MANUFACTURER_ID       55229
-#define DEVICE_NAME           "ENVLOG sensor"
+#define DEVICE_NAME           "ENVLOG sensor (M5Atom)"
 #endif /* defined(USE_BLE) */
 
 #ifdef USE_WIFI
@@ -22,7 +20,7 @@
 #define SERVER_PORT           1234
 #endif /* defined(USE_WIFI) */
 
-#include <M5StickC.h>
+#include <M5Atom.h>
 #include <Wire.h>
 
 #include <DHT12.h>
@@ -42,15 +40,18 @@
 #include <WiFiUdp.h>
 #endif /* defined(USE_WIFI) */
 
-
 #define DATA_FORMAT_VERSION   3
 #define T_PERIOD              1         // Transmission period
-#define S_PERIOD              119       // Sleeping period
+#define S_PERIOD              9       // Sleeping period
                              
-#define M5STICK_PIN_LED       10
-
 #define LO_BYTE(x)            (uint8_t)(((x) >> 0) & 0xff)
 #define HI_BYTE(x)            (uint8_t)(((x) >> 8) & 0xff)
+
+#if defined(USE_BLE) && defined(USE_WIFI)
+#error "specify either USE_BLE or USE_WIFI."
+#elif !defined(USE_BLE) && !defined(USE_WIFI)
+#error "specify either USE_BLE or USE_WIFI."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
 
 DHT12 dht12;
 Adafruit_BMP280 bme;
@@ -72,6 +73,16 @@ uint16_t hum;
 uint16_t pres;
 uint16_t vbat;
 uint16_t vbus;
+ 
+#ifdef ENABLE_LED
+void
+set_led(CRGB c)
+{
+  M5.dis.drawpix(0, c);
+  delay(50);
+  M5.update();
+}
+#endif /* defined(ENABLE_LED) */
 
 #ifdef USE_BLE
 void
@@ -134,24 +145,25 @@ setup_comm()
   WiFi.begin(AP_SSID, AP_PASSWD);
 
   while (WiFi.status() != WL_CONNECTED) {
-#ifdef ENABLE_LCD
-    M5.Lcd.setCursor(0, 0, 1);
-    M5.Lcd.printf("Trying connect to %s", AP_SSID);
-#endif /* defined(ENABLE_LCD) */
+#ifdef ENABLE_LED
+    set_led(0x00f000);
+#endif /* defined(ENABLE_LED) */
     delay(500);
+#ifdef ENABLE_LED
+    set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
   }
 
-#ifdef ENABLE_LCD
-  M5.Lcd.setCursor(0, 0, 1);
-  M5.Lcd.printf("connected to %s", AP_SSID);
-#endif /* defined(ENABLE_LCD) */
+#ifdef ENABLE_LED
+  set_led(0x0000f0);
+#endif /* defined(ENABLE_LED) */
 }
 
 void
 send_data()
 {
   uint8_t buf[18];
-  
+
   buf[0]  = (uint8_t)DATA_FORMAT_VERSION;
   buf[1]  = (uint8_t)seq;
 
@@ -174,45 +186,37 @@ send_data()
 }
 #endif /* defined(USE_WIFI) */
 
-
 void
 setup()
 {
-#ifdef ENABLE_LCD
-  M5.begin(true, true, false);
-  M5.Axp.ScreenBreath(8);
-  M5.Lcd.setRotation(3);
-  M5.Lcd.setTextFont(4);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.fillScreen(BLACK);
-#endif /* defined(ENABLE_LCD) */
+  bool led;
 
-#ifndef ENABLE_LCD
-  M5.begin(false, false, false);
-  M5.Axp.ScreenBreath(0);
-  M5.Axp.SetLDO2(false);
-#endif /* !defined(ENABLE_LCD) */
+#ifdef ENABLE_LED
+  led    = true;
+#endif /* defined(ENABLE_LED) */
+
+  M5.begin(false, true, led);
 
   esp_sleep_enable_timer_wakeup(S_PERIOD * 1000000);
   setCpuFrequencyMhz(80);
 
-  Wire.begin(0, 26);
-
-#ifdef ENABLE_LED
-  pinMode(M5STICK_PIN_LED, OUTPUT);
-#endif /* defined(ENABLE_LED) */
-
-#ifndef ENABLE_LED
-  pinMode(M5STICK_PIN_LED, INPUT_PULLDOWN);
-#endif /* !defined(ENABLE_LED) */
+  Wire.begin(26, 32);
 
   while (!bme.begin(0x76)) {
-#ifdef ENABLE_LCD
-    M5.Lcd.setCursor(0, 0, 1);
-    M5.Lcd.println("BMP280 init fail");
-#endif /* defined(ENABLE_LCD) */
+#ifdef ENABLE_LED
+    set_led(0x00f000);
+#endif /* defined(ENABLE_LED) */
+
     delay(10);
+
+#ifdef ENABLE_LED
+    set_led(0xf0f0f0);
+#endif /* defined(ENABLE_LED) */
   }
+
+#ifdef ENABLE_LED
+  set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
 
   setup_comm();
 
@@ -223,11 +227,11 @@ void
 read_sensor()
 {
   dht12.read();
-  temp = (uint16_t)(dht12.temperature * 100);
+  temp = (int16_t)(dht12.temperature * 100);
   hum  = (uint16_t)(dht12.humidity * 100);
   pres = (uint16_t)(bme.readPressure() / 10);
-  vbat = (uint16_t)(M5.Axp.GetBatVoltage() * 100);
-  vbus = (uint16_t)(M5.Axp.GetVBusVoltage() * 100);
+  vbat = (uint16_t)0;
+  vbus = (uint16_t)500;
 }
 
 void
@@ -235,27 +239,15 @@ loop()
 {
   read_sensor();
 
-#ifdef ENABLE_LCD
-  M5.Lcd.setCursor(0, 0, 1);
-  M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%\n",
-                temp / 100.0, hum / 100.0);
-
-  M5.Lcd.printf("Air-pressure: %4.0fhPa\n",
-                pres / 10.0);
-
-  M5.Lcd.printf("VBat: %4.1fV VBus: %4.1fV\n",
-                vbat / 100.0, vbus / 100.0);
-#endif /* !defined(ENABLE_LCD) */
-
 #ifdef ENABLE_LED
-  digitalWrite(M5STICK_PIN_LED, LOW);
-#endif /* !defined(ENABLE_LED) */
+  set_led(0xf00000);
+#endif /* defined(ENABLE_LED) */
 
   send_data();
 
 #ifdef ENABLE_LED
-  digitalWrite(M5STICK_PIN_LED, HIGH);
-#endif /* !defined(ENABLE_LED) */
+  set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
 
   seq++;
 
