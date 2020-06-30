@@ -114,7 +114,7 @@ module EnvLog
                            ?);
               EOQ
 
-              db.query(<<~EOQ, d['seq'], now, state, id)
+              db.query(<<~EOQ, data['seq'], now, state, id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
                         mtime = datetime(?, 'unixepoch', 'localtime'),
@@ -125,12 +125,6 @@ module EnvLog
               db.commit
 
             rescue NotUpdated
-              db.rollback
-
-            rescue NotRegisterd => e
-              Log.error("db") {
-                "unregister sensor requested (#{d["addr"]})"
-              }
               db.rollback
 
             rescue => e

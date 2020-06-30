@@ -82,7 +82,7 @@ begin
       #
       db.execute2(<<~EOQ, desc, psrc, id)
         update SENSOR_TABLE
-            set mtime        = NOW(),
+            set mtime        = datetime('now', 'localtime'),
                 descr        = ?,
                 `pow-source` = ?,
                 state        = "READY",
