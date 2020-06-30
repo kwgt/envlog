@@ -18,6 +18,7 @@ module EnvLog
 
       class << self
         using Mysql2Extender
+        using TimeStringFormatChanger
 
         def get_alives
           db   = Mysql2::Client.new(DB_CRED)
@@ -85,7 +86,7 @@ module EnvLog
 
           raise(NotUpdated) if data["seq"] == seq
 
-          now = Time.now.strftime("%Y-%m-%d %H:%m%s")
+          now = Time.now.to_s
 
           db.query(<<~EOQ)
             insert into DATA_TABLE

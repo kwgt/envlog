@@ -29,10 +29,6 @@ module EnvLog
         undef :new
       end
 
-      def time_str(tm)
-        tm.strftime("%Y-%m-%d %H:%M:%S")
-      end
-
       def close
         @db.close
       end
@@ -49,11 +45,11 @@ module EnvLog
                  DATA_TABLE.`air-pres`,
                  DATA_TABLE.rssi,
                  DATA_TABLE.vbat,
-                 DATA_TABLE.vbus,
+                 DATA_TABLE.vbus
               from SENSOR_TABLE left join DATA_TABLE
                   on SENSOR_TABLE.id = DATA_TABLE.sensor and
-                     SENSOR_TABLE.mtime = DATA_TABLE.timw
-              when addr is not NULL;
+                     SENSOR_TABLE.mtime = DATA_TABLE.time
+              where addr is not NULL;
         EOQ
 
         ret = rows.inject([]) { |m, n|
@@ -77,20 +73,35 @@ module EnvLog
 
       def get_latest_value(id)
         row = @db.get_first_row(<<~EOQ, :as => :array)
-          select time, temp, humidity, `air-pres`, rssi, vbat, vbus
-              from DATA_TABLE
-              where sensor = "#{id}" order by time desc limit 1;
+          select state, mtime from SENSOR_TABLE where id = "#{id}";
         EOQ
 
-        ret = {
-          :time  => row[0].to_s,
-          :temp  => row[1],
-          :hum   => row[2],
-          :"a/p" => row[3],
-          :rssi  => row[4],
-          :vbat  => row[5],
-          :vbus  => row[6],
-        }
+        if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "CLOSED"
+          ret  = {
+            :time  => row[1].to_s,
+            :state => row[0]
+          }
+
+        else
+          stat = row[0]
+
+          row = @db.get_first_row(<<~EOQ, :as => :array)
+            select time, temp, humidity, `air-pres`, rssi, vbat, vbus
+                from DATA_TABLE
+                where sensor = "#{id}" order by time desc limit 1;
+          EOQ
+
+          ret = {
+            :time  => row[0].to_s,
+            :temp  => row[1],
+            :hum   => row[2],
+            :"a/p" => row[3],
+            :rssi  => row[4],
+            :vbat  => row[5],
+            :vbus  => row[6],
+            :state => stat
+          }
+        end
 
         return ret
       end
