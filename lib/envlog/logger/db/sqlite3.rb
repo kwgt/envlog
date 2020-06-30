@@ -20,7 +20,7 @@ module EnvLog
           if not @db
             @db = SQLite3::Database.new(DB_PATH.to_s)
             @db.busy_handler {
-              $logger.error("db") {"database access is conflict, retry."}
+              Log.error("db") {"database access is conflict, retry."}
               sleep(0.1)
               true
             }
