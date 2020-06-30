@@ -74,22 +74,16 @@ module EnvLog
           db&.close
         end
 
-        def put_data(d, s)
+        def put_data(id, data, state)
           db = Mysql2::Client.new(DB_CRED)
 
           db.query("start transaction;")
-
-          id = db.get_first_value(<<~EOQ)
-            select id from SENSOR_TABLE where addr = "#{d["addr"]}";
-          EOQ
-
-          raise(NotRegisterd) if not id
 
           seq = db.get_first_value(<<~EOQ)
             select `last-seq` from SENSOR_TABLE where id = "#{id}";
           EOQ
 
-          raise(NotUpdated) if d["seq"] == seq
+          raise(NotUpdated) if data["seq"] == seq
 
           now = Time.now.strftime("%Y-%m-%d %H:%m%s")
 
@@ -97,31 +91,25 @@ module EnvLog
             insert into DATA_TABLE
                 values ("#{id}",
                         "#{now}",
-                        #{d["temp"]},
-                        #{d["hum"]},
-                        #{d["a/p"]},
-                        #{d["rssi"]},
-                        #{d["vbat"]},
-                        #{d["vbus"]});
+                        #{data["temp"]},
+                        #{data["hum"]},
+                        #{data["a/p"]},
+                        #{data["rssi"]},
+                        #{data["vbat"]},
+                        #{data["vbus"]});
           EOQ
 
           db.query(<<~EOQ)
             update SENSOR_TABLE
-                set `last-seq` = #{d["seq"]},
+                set `last-seq` = #{data["seq"]},
                     mtime = "#{now}",
-                    state = "#{s}"
+                    state = "#{state}"
                 where id = "#{id}";
           EOQ
 
           db.query("commit;")
 
         rescue NotUpdated
-          db.query("rollback;")
-
-        rescue NotRegisterd
-          Log.error("db") {
-            "unregister sensor requested (#{d["addr"]})"
-          }
           db.query("rollback;")
 
         rescue => e
@@ -158,7 +146,7 @@ module EnvLog
           db.query("start transaction;")
 
           db.query(<<~EOQ)
-            update SENSOR_TABLE set mtime = NOW() when id = "#{id}";
+            update SENSOR_TABLE set mtime = NOW() where id = "#{id}";
           EOQ
 
           db.query("commit;")

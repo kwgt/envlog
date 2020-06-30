@@ -7,17 +7,6 @@ require 'yaml'
 require 'securerandom'
 require 'mysql2'
 
-class String
-  if not method_defined?(:to_mysql)
-    #
-    # MySQLの文字列リテラルとして返すので注意
-    #
-    def to_mysql
-      '"' + Mysql2::Client.escape(self) + '"'
-    end
-  end
-end
-
 BASE_DIR    = Pathname.new(File.expand_path(__FILE__)).dirname.parent.parent
 DATA_DIR    = BASE_DIR + "data"
 LIB_DIR     = BASE_DIR + "lib" + "envlog"
@@ -25,8 +14,11 @@ SCHEMA_FILE = DATA_DIR + "schema.yml"
 
 require "#{LIB_DIR + "version"}"
 require "#{LIB_DIR + "misc"}"
+require "#{LIB_DIR + "mysql2"}"
 require "#{LIB_DIR + "schema"}"
 require "#{LIB_DIR + "config"}"
+
+using Mysql2Extender
 
 OptionParser.new { |opt|
   opt.version = EnvLog::VERSION
@@ -66,21 +58,45 @@ begin
 
   db.query("start transaction;")
 
-	db.query(<<~EOQ)
-    update SENSOR_TABLE set addr = NULL where addr = "#{addr}";
-	EOQ
+  row = db.get_first_row(<<~EOQ, :as => :array)
+    select id, state from SENSOR_TABLE where addr = "#{addr}";
+  EOQ
 
-	db.query(<<~EOQ)
-		insert into SENSOR_TABLE
-        values ("#{addr}",
-                "#{id}",
-                NOW(),
-                NOW(),
-                #{descr.to_mysql},
-                "#{psrc.upcase}",
-                "READY",
-                NULL);
-	EOQ
+  if not row
+    #
+    # 新規登録の場合
+    #
+    db.query(<<~EOQ)
+      insert into SENSOR_TABLE
+          values ("#{addr}",
+                  "#{id}",
+                  NOW(),
+                  NOW(),
+                  #{descr.to_mysql},
+                  "#{psrc.upcase}",
+                  "READY",
+                  NULL);
+    EOQ
+
+  else
+    id = row[0]
+    st = row[1]
+
+    if st == "UNKNOWN" || st == "CLOSED"
+      db.query(<<~EOQ)
+        update SENSOR_TABLE
+            set mtime        = NOW(),
+                descr        = #{descr.to_mysql},
+                `pow-source` = "#{psrc}",
+                state        = "READY",
+                `last-seq`   = NULL
+            where id = "#{id}";
+      EOQ
+
+    else
+      raise("device #{addr} is working now")
+    end
+  end
 
   db.query("commit;")
 
