@@ -11,29 +11,65 @@
     var ret;
 
     switch (val) {
-      case "READY":
-        ret = "state-ready";
-        break;
+    case "READY":
+      ret = "state-ready";
+      break;
 
-      case "NORMAL":
-        ret = "state-normal";
-        break;
+    case "UNKNOWN":
+      ret = "state-unknown";
+      break;
 
-      case "DEAD-BATTERY":
-        ret = "state-dead-battery";
-        break;
+    case "NORMAL":
+      ret = "state-normal";
+      break;
 
-      case "STALL":
-        ret = "state-stall";
-        break;
+    case "DEAD-BATTERY":
+      ret = "state-dead-battery";
+      break;
 
-      case "CLOSED":
-        ret = "state-closed";
-        break;
+    case "STALL":
+      ret = "state-stall";
+      break;
 
-      default:
-        throw("really?");
-        break;
+    case "PAUSE":
+      ret = "state-pause";
+      break;
+
+    default:
+      throw("really?");
+      break;
+    }
+
+    return ret;
+  }
+
+  function stringifyValues(src) {
+    var ret;
+
+    switch (src["state"]) {
+    case "NORMAL":
+    case "DEAD-BATTERY":
+      ret = {
+        "temp": sprintf("%4.1f", src["temp"]),
+        "hum":  sprintf("%4.1f", src["hum"]),
+        "a/p":  sprintf("%4d",   src["a/p"]),
+        "vbat": sprintf("%4.2f", src["vbat"]),
+        "vbus": sprintf("%4.2f", src["vbus"]),
+      };
+      break;
+
+    case "UNKNOWN":
+    case "READY":
+    case "STALL":
+    case "PAUSE":
+        ret = {
+          "temp": " \u{2014} ",
+          "hum":  " \u{2014} ",
+          "a/p":  " \u{2014} ",
+          "vbat": " \u{2014} ",
+          "vbus": " \u{2014} ",
+        };
+      break;
     }
 
     return ret;
@@ -42,25 +78,29 @@
   function updateSensorRow(id) {
     session.getLatestSensorValue(id)
       .then((info) => {
+        let foo;
+
+        foo = stringifyValues(info);
+
         $('table#sensor-table > tbody')
           .find(`tr[data-sensor-id=${id}]`)
             .find('td.last-update')
               .text(info["time"])
             .end()
             .find('td.temperature')
-              .text(sprintf("%4.1f", info["temp"]))
+              .text(foo["temp"])
             .end()
             .find('td.humidity')
-              .text(sprintf("%4.1f", info["hum"]))
+              .text(foo["hum"])
             .end()
             .find('td.air-pressure')
-              .text(sprintf("%4d", info["a/p"]))
+              .text(foo["a/p"])
             .end()
             .find('td.vbat')
-              .text(sprintf("%4.2f", info["vbat"]))
+              .text(foo["vbat"])
             .end()
             .find('td.vbus')
-              .text(sprintf("%4.2f", info["vbus"]))
+              .text(foo["vbus"])
             .end()
             .find('td.state')
               .removeClass()
@@ -72,8 +112,9 @@
 
   function setSensorTable(list) {
     list.forEach((info) => {
-      let $state;
+      let foo;
 
+      foo = stringifyValues(info);
 
       $('table#sensor-table > tbody')
         .append($('<tr>')
@@ -90,23 +131,23 @@
           )
           .append($('<td>')
             .addClass('temperature')
-            .text(sprintf("%4.1f", info["temp"]))
+            .text(foo["temp"])
           )
           .append($('<td>')
             .addClass('humidity')
-            .text(sprintf("%4.1f", info["hum"]))
+            .text(foo["hum"])
           )
           .append($('<td>')
             .addClass('air-pressure')
-            .text(sprintf("%4d", info["a/p"]))
+            .text(foo["a/p"])
           )
           .append($('<td>')
             .addClass('vbat')
-            .text(sprintf("%4.2f", info["vbat"]))
+            .text(foo["vbat"])
           )
           .append($('<td>')
             .addClass('vbus')
-            .text(sprintf("%4.2f", info["vbus"]))
+            .text(foo["vbus"])
           )
           .append($('<td>')
             .addClass('state')

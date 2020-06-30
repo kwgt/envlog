@@ -185,7 +185,7 @@ module EnvLog
                             ?,
                             datetime('now', 'localtime'),
                             datetime('now', 'localtime'),
-                            NULL
+                            NULL,
                             "UNKNOWN",
                             "UNKNOWN",
                             NULL);

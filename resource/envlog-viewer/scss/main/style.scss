@@ -159,8 +159,8 @@ table#sensor-table > tbody {
     content: "STALL";
   }
 
-  td.state.state-closed:after {
-    content: "CLOSED";
+  td.state.state-pause:after {
+    content: "PAUSE";
   }
 
   td.description {

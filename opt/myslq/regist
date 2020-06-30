@@ -82,7 +82,10 @@ begin
     id = row[0]
     st = row[1]
 
-    if st == "UNKNOWN" || st == "CLOSED"
+    if st == "UNKNOWN"
+      #
+      # 不明デバイスとして既に登録ずみだった場合
+      #
       db.query(<<~EOQ)
         update SENSOR_TABLE
             set mtime        = NOW(),

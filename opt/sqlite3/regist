@@ -76,9 +76,9 @@ begin
     id = row[0]
     st = row[1]
 
-    if st == "UNKNOWN" || st == "CLOSED"
+    if st == "UNKNOWN"
       #
-      # 不明デバイスもしくは除外として登録されていた場合
+      # 不明デバイスもしくとして既に登録されていた場合
       #
       db.execute2(<<~EOQ, desc, psrc, id)
         update SENSOR_TABLE
