@@ -76,7 +76,7 @@ module EnvLog
           select state, mtime from SENSOR_TABLE where id = "#{id}";
         EOQ
 
-        if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "CLOSED"
+        if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "PAUSE"
           ret  = {
             :time  => row[1].to_s,
             :state => row[0]

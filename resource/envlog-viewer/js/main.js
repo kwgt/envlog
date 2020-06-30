@@ -31,8 +31,8 @@
       ret = "state-stall";
       break;
 
-    case "CLOSED":
-      ret = "state-closed";
+    case "PAUSE":
+      ret = "state-pause";
       break;
 
     default:
@@ -61,7 +61,7 @@
     case "UNKNOWN":
     case "READY":
     case "STALL":
-    case "CLOSED":
+    case "PAUSE":
         ret = {
           "temp": " \u{2014} ",
           "hum":  " \u{2014} ",
