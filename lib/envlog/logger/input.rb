@@ -48,6 +48,18 @@ module EnvLog
           return @sensor_tbl
         end
 
+        def battery_dead(id, addr)
+          Log.warn("input") {
+            "sensor #{id} (#{addr}) external battery is dead."
+          }
+        end
+
+        def battery_recover(id, addr)
+          Log.info("input") {
+            "sensor #{id} (#{addr}) external battery is recovered."
+          }
+        end
+
         def put_data(json)
           data = JSON.parse(json)
           raise InvalidData.new(data) if not Schema.valid?(:INPUT_DATA, data)
@@ -56,19 +68,38 @@ module EnvLog
 
           if info
             case info[:state]
-            when "READY", "NORMAL", "DEAD-BATTERY", "STALL"
+            when "READY", "NORMAL", "STALL"
               case info[:powsrc]
-              when "STABLE"
+              when "BATTERY"
+                if data["vbus"] < 4.0
+                  battery_dead(info[:id], data["addr"])
+                  state = "DEAD-BATTERY"
+                else
+                  state = "NORMAL"
+                end
+
+              else
+                state = "NORMAL"
+              end
+
+              DBA.put_data(info[:id], data, state)
+
+            when "DEAD-BATTERY"
+              if data["vbus"] >= 4.0
+                battery_recover(info[:id], data["addr"])
                 state = "NORMAL"
 
-              when "BATTERY"
-                state = (vbus > 4.0)? "NORMAL": "DEAD-BATTERY"
+              else
+                state = "DEAD-BATTERY"
               end
 
               DBA.put_data(info[:id], data, state)
 
             when "UNKNOWN"
               DBA.update_timestamp(info[:id])
+
+            when "PAUSE"
+              # ignore
             end
 
           else
