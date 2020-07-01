@@ -1,6 +1,33 @@
 # envlog
 A logger for environment data.
 
+## Installation
+### gems
+I am not registered gem file to gem.org at the moment, so build  a gem file by yourself.
+
+```
+$ bundle install
+$ rake build
+```
+
+Use the file to install it with the gem command.
+
+```
+$ gem install pkg/envlog-0.x.x.gem
+```
+
+### sensor and gateway devices
+Both can be built using [PlatformIO](https://platformio.org/). Edit the source "src/main.ino" and change the settings, and then build it as follows.
+
+```
+$ pio run
+```
+
+If you want to upload to your device, do the following：
+```
+$ pio run -t upload
+```
+
 ## Usage
 ### Logger process
 This process is receiving data from a sensor and registering it in the database. Data can be received  input by serial device via  gateway device or by UDP available. You can choose to use either SQLite3 or MySQL(MariaDB) as the database.
