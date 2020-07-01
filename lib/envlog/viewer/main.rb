@@ -11,10 +11,11 @@ require 'eventmachine'
 
 module EnvLog
   module Viewer
-    POLL_INTERVAL = 10
+    POLL_INTERVAL = 30
 
     class << self
       def start
+        Log.info("main") {"viewer started."}
         WebServer.start(self)
         WebSocket.start(self)
 
@@ -46,13 +47,14 @@ module EnvLog
         res = db.poll_sensor()
 
         res.each_pair { |id, mtime|
-          if mtime < sensor_tbl[id]
+          if mtime > sensor_tbl[id]
+            Log.debug("main") {"sensor #{id} updated"}
             WebSocket.broadcast(:update_sensor, id)
             sensor_tbl[id] = mtime
           end
         }
 
-      rescue
+      ensure
         db&.close
       end
     end

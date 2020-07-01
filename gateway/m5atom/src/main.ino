@@ -4,9 +4,11 @@
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
 
-#define LCD
-#include <M5Stack.h>
+#include <M5Atom.h>
 #include <BLEDevice.h>
+#include <ESPRandom.h>
+
+#define ENABLE_LED
 
 #define MANUFACTURER_ID     55229
 #define DATA_FORMAT_VERSION 3
@@ -16,22 +18,20 @@
       (uint16_t)((((p)[1]<<8)&0xff00)|(((p)[0]<<0)&0x00ff))
 
 BLEScan* scanner;
+#ifdef ENABLE_LED 
+RTC_DATA_ATTR int boot_count = 0;
+#endif /* defined(ENABLE_LED) */
 
 void
-setup()
-{
-  M5.begin();
-  M5.Power.begin();
-
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.fillScreen(BLACK);
+setup() {
+  M5.begin(true, false, true);
 
   Serial.begin(115200);
 
   BLEDevice::init("");
 
   scanner = BLEDevice::getScan();
-  scanner->setActiveScan(false);
+  scanner->setActiveScan(true);
 }
 
 void
@@ -53,12 +53,20 @@ loop()
   float pres;
   float vbat;
   float vbus;
+#ifdef ENABLE_LED 
+  int msk;
+#endif /* defined(ENABLE_LED) */
 
   list = scanner->start(10);
   nf   = list.getCount();
   ns   = 0;
 
-  M5.Lcd.fillScreen(BLACK);
+#ifdef ENABLE_LED 
+  for (i = 0; i < 25; i++) {
+    msk = 0xff0000 >> ((boot_count % 3) * 8);
+    M5.dis.drawpix(i, ESPRandom::get() & msk);
+  }
+#endif /* defined(ENABLE_LED) */
 
   for (i = 0, y = 33; i < nf; i++) {
     dev = list.getDevice(i);
@@ -70,7 +78,7 @@ loop()
     if (U16(cstr + 0) != MANUFACTURER_ID) continue;
     if (cstr[2] != DATA_FORMAT_VERSION) continue;
 
-    seq  = (int)((uint8_t)cstr[3]);
+    seq  = (int)(cstr[3]);
 
     sprintf(addr, "%02x:%02x:%02x:%02x:%02x:%02x",
             cstr[4], cstr[5], cstr[6], cstr[7], cstr[8], cstr[9]);
@@ -80,19 +88,6 @@ loop()
     pres = U16(cstr + 14) / 10.0;
     vbat = U16(cstr + 16) / 100.0;
     vbus = U16(cstr + 18) / 100.0;
-
-    M5.Lcd.setCursor(20, y, 1);
-    M5.Lcd.printf("sensor %s", addr);
-
-    M5.Lcd.setCursor(30, y + 10, 1);
-    M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%", temp, hum);
-
-    M5.Lcd.setCursor(30, y + 20, 1);
-    M5.Lcd.printf("Air-pressure: %4.0fhPa", pres);
-
-    M5.Lcd.setCursor(30, y + 30, 1);
-    M5.Lcd.printf("RSSI: %d, VBat: %3.1fV VBus: %3.1fV",
-                  dev.getRSSI(), vbat, vbus);
 
     Serial.printf("{");
     Serial.printf("\"addr\":\"%s\",", addr);
@@ -111,12 +106,9 @@ loop()
 
   Serial.flush();
 
-  M5.Lcd.setCursor(10, 10, 1);
-
-  if (ns > 0) {
-    M5.Lcd.printf("update %d sensor(s)", ns);
-  } else {
-    M5.Lcd.printf("scanning...         ");
-  }
+#ifdef ENABLE_LED 
+  boot_count++;
+  delay(50);
+#endif /* defined(ENABLE_LED) */
 }
 

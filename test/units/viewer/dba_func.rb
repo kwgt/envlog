@@ -7,16 +7,19 @@ require 'json_schemer'
 
 require_relative '../../lib/common'
 
-require "#{PKG_LIB_DIR}/viewer/db"
+require "#{LIB_DIR}/viewer/db"
 
 Thread.abort_on_exception = true
 
 class TestViewerDBAFunc < Test::Unit::TestCase
+  using KeyConverter
+  using YAMLExtender
+
   SCHEMA_PATH = TEST_DATA_DIR + "schema" + "viewer" + "dba_func.yml"
 
   class << self
     def startup
-      @@schema = YAML.load_file(SCHEMA_PATH)
+      @@schema = YAML.load_erb(SCHEMA_PATH)
     end
 
     def shutdown
@@ -35,7 +38,7 @@ class TestViewerDBAFunc < Test::Unit::TestCase
     sch = JSONSchemer.schema(@@schema[key])
     #pp data
     #pp sch.validate(data).to_a
-    return sch.valid?(data)
+    return sch.valid?(data.stringify_keys)
   end
 
   #
@@ -43,8 +46,6 @@ class TestViewerDBAFunc < Test::Unit::TestCase
   #
   test "call poll_sensor()" do
     res = @db.poll_sensor
-
-    pp res if $DEBUG
     assert_true(check("RESULT(poll_sensor)", res))
   end
 end

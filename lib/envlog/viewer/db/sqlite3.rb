@@ -18,7 +18,7 @@ module EnvLog
         def open
           db  = SQLite3::Database.new(DB_PATH.to_s)
           db.busy_handler {
-            $logger.error("db") {"databse access is conflict, retry"}
+            Log.error("db") {"databse access is conflict, retry"}
             sleep(0.1)
             true
           }
@@ -76,19 +76,33 @@ module EnvLog
 
       def get_latest_value(id)
         row = @db.get_first_row(<<~EOQ, id)
-          select time, temp, humidity, `air-pres`, rssi, vbat, vbus
-              from DATA_TABLE where sensor = ? order by time desc limit 1;
+          select state, mtime from SENSOR_TABLE where id = ?;
         EOQ
 
-        ret = {
-          :time  => row[0],
-          :temp  => row[1],
-          :hum   => row[2],
-          :"a/p" => row[3],
-          :rssi  => row[4],
-          :vbat  => row[5],
-          :vbus  => row[6],
-        }
+        if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "PAUSE"
+          ret = {
+            :time  => row[1], 
+            :state => row[0],
+          }
+        else
+          stat = row[0]
+
+          row  = @db.get_first_row(<<~EOQ, id)
+            select time, temp, humidity, `air-pres`, rssi, vbat, vbus
+                from DATA_TABLE where sensor = ? order by time desc limit 1;
+          EOQ
+
+          ret = {
+            :time  => row[0],
+            :temp  => row[1],
+            :hum   => row[2],
+            :"a/p" => row[3],
+            :rssi  => row[4],
+            :vbat  => row[5],
+            :vbus  => row[6],
+            :state => stat
+          }
+        end
 
         return ret
       end

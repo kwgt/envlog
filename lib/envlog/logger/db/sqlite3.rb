@@ -8,6 +8,7 @@
 #
 
 require 'sqlite3'
+require 'securerandom'
 
 module EnvLog
   module Logger
@@ -19,7 +20,7 @@ module EnvLog
           if not @db
             @db = SQLite3::Database.new(DB_PATH.to_s)
             @db.busy_handler {
-              $logger.error("db") {"database access is conflict, retry."}
+              Log.error("db") {"database access is conflict, retry."}
               sleep(0.1)
               true
             }
@@ -34,42 +35,90 @@ module EnvLog
         end
         private :mutex
 
-        def put_data(d)
+        def get_alives
+          rows = mutex.synchronize {
+            db.execute(<<~EOQ)
+              select addr, id from SENSOR_TABLE where addr is not NULL;
+            EOQ
+          }
+
+          return rows.inject([]) {|m, n| m << {:addr => n[0], :id => n[1]}}
+        end
+
+        def get_sensor_info(addr)
+          row = mutex.synchronize {
+            db.get_first_row(<<~EOQ, addr)
+              select id, `pow-source`, state
+                  from SENSOR_TABLE where addr = ?;
+            EOQ
+          }
+
+          if row
+            ret = {
+              :id     => row[0],
+              :powsrc => row[1],
+              :state  => row[2],
+            }
+
+          else
+            row = nil
+          end
+
+          return ret
+        end
+
+        def poll_sensor
+          rows = db.execute(<<~EOQ)
+            select id, mtime, state from SENSOR_TABLE where addr is not NULL;
+          EOQ
+
+          ret = rows.inject({}) { |m, n|
+            m[n[0]] = {:mtime => n[1], :state => n[2]}; m
+          }
+
+          return ret
+        end
+
+        def put_data(id, data, state)
           mutex.synchronize {
             begin
               db.transaction
-
-              id   = db.get_first_value(<<~EOQ, d["addr"])
-                select id from SENSOR_TABLE where addr = ?;
-              EOQ
-
-              raise(NotRegisterd) if not id
 
               seq  = db.get_first_value(<<~EOQ, id)
                 select `last-seq` from SENSOR_TABLE where id = ?;
               EOQ
 
-              raise(NotUpdated) if d["seq"] == seq
+              raise(NotUpdated) if data["seq"] == seq
 
+              now  = Time.now.to_i
               args = [
                 id,
-                d["temp"],
-                d["hum"],
-                d["a/p"],
-                d["rssi"],
-                d["vbat"],
-                d["vbus"]
+                now,
+                data["temp"],
+                data["hum"],
+                data["a/p"],
+                data["rssi"],
+                data["vbat"],
+                data["vbus"]
               ]
 
               db.query(<<~EOQ, *args)
                 insert into DATA_TABLE
-                    values(?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?);
+                    values(?,
+                           datetime(?, 'unixepoch', 'localtime'),
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?);
               EOQ
 
-              db.query(<<~EOQ, d['seq'], id)
+              db.query(<<~EOQ, data['seq'], now, state, id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
-                        mtime = datetime('now', 'localtime')
+                        mtime = datetime(?, 'unixepoch', 'localtime'),
+                        state = ?
                     where id = ?;
               EOQ
 
@@ -78,11 +127,71 @@ module EnvLog
             rescue NotUpdated
               db.rollback
 
-            rescue NotRegisterd => e
-              Log.error("db") {
-                "unregister sensor requested (#{d["addr"]})"
-              }
+            rescue => e
               db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def set_stall(id)
+          mutex.synchronize {
+            begin
+              db.transaction
+
+              db.execute(<<~EOQ, id)
+                update SENSOR_TABLE
+                    set mtime = datetime('now', 'localtime'),
+                        state = "STALL"
+                    where id = ?;
+              EOQ
+
+              db.commit
+
+            rescue => e
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def update_timestamp(id)
+          mutex.synchronize {
+            begin
+              db.transaction
+
+              db.execute(<<~EOQ, addr)
+                update SENSOR_TABLE
+                    set mtime = datetime('now', 'localtime') where id = ?;
+              EOQ
+
+              db.commit
+
+            rescue => e
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def regist_unknown(addr)
+          mutex.synchronize {
+            begin
+              db.transaction
+
+              db.execute(<<~EOQ, addr, SecureRandom.uuid)
+                insert into SENSOR_TABLE
+                    values (?,
+                            ?,
+                            datetime('now', 'localtime'),
+                            datetime('now', 'localtime'),
+                            NULL,
+                            "UNKNOWN",
+                            "UNKNOWN",
+                            NULL);
+              EOQ
+
+              db.commit
 
             rescue => e
               db.rollback

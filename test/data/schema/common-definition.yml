@@ -1,0 +1,49 @@
+definition:
+  - &UUID1_PATTERN
+    "^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
+  - &UUID4_PATTERN
+    "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$"
+
+  - &DATETIME_PATTERN
+    "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
+
+  - &MAC_ADDR_PATTERN
+    "^([0-9a-f]{2}:){5}[0-9a-f]{2}$"
+
+  - &UUID1
+    type: string
+    pattern: *UUID1_PATTERN
+
+  - &UUID4
+    type: string
+    pattern: *UUID4_PATTERN
+
+  - &DATE_TIME
+    type: string
+    pattern: *DATETIME_PATTERN
+
+  - &BT_ADDR:
+    type: string
+    pattern: *BT_ADDR_PATTERN
+
+  - &DEVICE_ADDR
+    oneOf:
+      - <<: *MAC_ADDR
+
+  - &POWER_SOURCE
+    type: string
+    enum:
+      - BATTERY       # 外部電源としてバッテリーを使用
+      - STABLE        # 外部電源として安定化電源を使用
+      - UNKNOWN       # 不明
+
+  - &SENSOR_STATE
+    type: string
+    enum:
+      - UNKNOWN       # 未登録だがデータ受信を確認した状態
+      - READY         # 登録は済んでいるがまだデータを受信していない状態
+      - NORMAL        # 通常の受信状態
+      - DEAD-BATTERY  # 外部バッテリー切れ（内臓の予備電源で動作中）の状態
+      - STALL         # 停止中（5分以上データの送信が途絶えた状態）
+      - PAUSE         # データを受信しても記録しない状態（ユーザによる停止）

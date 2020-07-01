@@ -64,7 +64,6 @@ table#sensor-table > thead {
   th.vbus {
     text-align: center;
   }
-
 }
 
 table#sensor-table > tbody {
@@ -138,6 +137,30 @@ table#sensor-table > tbody {
 
   td.state {
     font-family: "Roboto mono";
+  }
+
+  td.state.state-ready:after {
+    content: "READY";
+  }
+
+  td.state.state-normal:after {
+    content: "NORMAL";
+  }
+
+  td.state.state-dead-battery:after {
+    color: "red";
+    font-weight: bold;
+    content: "BT-DEAD";
+  }
+
+  td.state.state-stall:after {
+    color: "red";
+    font-weight: bold;
+    content: "STALL";
+  }
+
+  td.state.state-pause:after {
+    content: "PAUSE";
   }
 
   td.description {

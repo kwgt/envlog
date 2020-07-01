@@ -8,6 +8,7 @@
 #
 
 require 'mysql2'
+require 'securerandom'
 require "#{LIB_DIR}/mysql2"
 
 module EnvLog
@@ -17,40 +18,93 @@ module EnvLog
 
       class << self
         using Mysql2Extender
+        using TimeStringFormatChanger
 
-        def put_data(d)
+        def get_alives
+          db   = Mysql2::Client.new(DB_CRED)
+
+          rows = db.query(<<~EOQ, :as => :array)
+            select addr, id from SENSOR_TABLE where addr is not NULL;
+          EOQ
+
+          return rows.inject([]) {|m, n| m << {:addr => n[0], :id => n[1]}}
+
+        ensure
+          db&.close
+        end
+
+        def get_sensor_info(addr)
+          db  = Mysql2::Client.new(DB_CRED)
+
+          row = db.get_first_row(<<~EOQ, :as => :array)
+            select id, `pow-source`, state
+                from SENSOR_TABLE where addr = "#{addr}";
+          EOQ
+
+          if row
+            ret = {
+              :id     => row[0],
+              :powsrc => row[1],
+              :state  => row[2],
+            }
+
+          else
+            ret = nil
+          end
+
+          return ret
+
+        ensure
+          db&.close
+        end
+
+        def poll_sensor
+          db = Mysql2::Client.new(DB_CRED)
+
+          rows = db.query(<<~EOQ, :as => :array)
+            select id, mtime from SENSOR_TABLE where addr is not NULL;
+          EOQ
+
+          ret = rows.inject({}) { |m, n|
+            m[n[0]] = {:mtime => n[1].to_s, :state => n[2]}; m
+          }
+
+          return ret
+
+        ensure
+          db&.close
+        end
+
+        def put_data(id, data, state)
           db = Mysql2::Client.new(DB_CRED)
 
           db.query("start transaction;")
-
-          id = db.get_first_value(<<~EOQ)
-            select id from SENSOR_TABLE where addr = "#{d["addr"]}";
-          EOQ
-
-          raise(NotRegisterd) if not id
 
           seq = db.get_first_value(<<~EOQ)
             select `last-seq` from SENSOR_TABLE where id = "#{id}";
           EOQ
 
-          raise(NotUpdated) if d["seq"] == seq
+          raise(NotUpdated) if data["seq"] == seq
+
+          now = Time.now.to_s
 
           db.query(<<~EOQ)
             insert into DATA_TABLE
                 values ("#{id}",
-                        NOW(),
-                        #{d["temp"]},
-                        #{d["hum"]},
-                        #{d["a/p"]},
-                        #{d["rssi"]},
-                        #{d["vbat"]},
-                        #{d["vbus"]});
+                        "#{now}",
+                        #{data["temp"]},
+                        #{data["hum"]},
+                        #{data["a/p"]},
+                        #{data["rssi"]},
+                        #{data["vbat"]},
+                        #{data["vbus"]});
           EOQ
 
           db.query(<<~EOQ)
             update SENSOR_TABLE
-                set `last-seq` = #{d["seq"]},
-                    mtime = NOW()
+                set `last-seq` = #{data["seq"]},
+                    mtime = "#{now}",
+                    state = "#{state}"
                 where id = "#{id}";
           EOQ
 
@@ -59,11 +113,71 @@ module EnvLog
         rescue NotUpdated
           db.query("rollback;")
 
-        rescue NotRegisterd
-          Log.error("db") {
-            "unregister sensor requested (#{d["addr"]})"
-          }
+        rescue => e
           db.query("rollback;")
+          raise(e)
+
+        ensure
+          db&.close
+        end
+
+        def set_stall(id)
+          db = Mysql2::Client.new(DB_CRED)
+
+          db.query("start transaction;")
+
+          db.query(<<~EOQ)
+            update SENSOR_TABLE
+                set mtime = NOW(), state = "STALL" where id = "#{id}";
+          EOQ
+
+          db.query("commit;")
+
+        rescue => e
+          db.query("rollback;")
+          raise(e)
+
+        ensure
+          db&.close
+        end
+
+        def update_timestamp(id)
+          db = Mysql2::Client.new(DB_CRED)
+
+          db.query("start transaction;")
+
+          db.query(<<~EOQ)
+            update SENSOR_TABLE set mtime = NOW() where id = "#{id}";
+          EOQ
+
+          db.query("commit;")
+
+        rescue => e
+          db.query("rollback;")
+          raise(e)
+
+        ensure
+          db&.close
+        end
+
+        def regist_unknown(addr)
+          db = Mysql2::Client.new(DB_CRED)
+
+          db.query("start transaction;")
+
+          db.query(<<~EOQ)
+            insert into SENSOR_TABLE
+                values ("#{addr}",
+                        "#{SecureRandom.uuid}",
+                        NOW(),
+                        NOW(),
+                        NULL,
+                        "UNKNOWN",
+                        "UNKNOWN",
+                        NULL);
+          EOQ
+
+          db.query("commit;")
 
         rescue => e
           db.query("rollback;")

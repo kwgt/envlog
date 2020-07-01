@@ -1,24 +1,4 @@
-definition:
-  - &UUID1_PATTERN
-    "^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$"
-
-  - &UUID4_PATTERN
-    "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[0-9a-f]{4}-[0-9a-f]{12}$"
-
-  - &DATETIME_PATTERN
-    "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}"
-
-  - &UUID1
-    type: string
-    pattern: *UUID1_PATTERN
-
-  - &UUID4
-    type: string
-    pattern: *UUID4_PATTERN
-
-  - &DATE_TIME
-    type: string
-    pattern: *DATETIME_PATTERN
+<%= YAML::include("common-definition.yml") %>
 
 RESULT(get_sensor_list):
   $schema: http://json-schema.org/draft-07/schema#
@@ -50,7 +30,7 @@ RESULT(get_sensor_list):
           type: string
         state:
           oneOf:
-            - type: string
+            - <<: *SENSOR_STATE
             - type: 'null'
         temp:
           type: number
@@ -73,7 +53,7 @@ RESULT(poll_sensor):
   type: object
   patternProperties:
     *UUID4_PATTERN:
-        <<: *DATE_TIME
+      <<: *DATE_TIME
   addtionalProperties: false
 
 RESULT(get_latest_sensor_value):
@@ -81,13 +61,9 @@ RESULT(get_latest_sensor_value):
   description: >-
     data schema for result of RPC procedure 'get_latest_sensor_value()'
   type: object
-  require:
-    - temp
-    - hum
-    - a/p
-    - rssi
-    - vbat
-    - vbus
+  required:
+    - time
+    - state
   properties:
     time:
       <<: *DATE_TIME
@@ -103,3 +79,6 @@ RESULT(get_latest_sensor_value):
       type: number
     vbus:
       type: number
+    state:
+      <<: *SENSOR_STATE
+  addtionalProperties: false

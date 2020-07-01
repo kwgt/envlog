@@ -7,10 +7,6 @@ require 'json_schemer'
 
 require_relative '../../lib/common'
 
-require "#{PKG_LIB_DIR}/misc"
-require "#{PKG_LIB_DIR}/schema"
-require "#{PKG_LIB_DIR}/config"
-
 class TestReadSchema < Test::Unit::TestCase
   class << self
     def startup

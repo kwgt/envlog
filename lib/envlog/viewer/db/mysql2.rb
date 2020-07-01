@@ -13,9 +13,10 @@ require "#{LIB_DIR}/mysql2"
 module EnvLog
   module Viewer
     class DBA
-      DB_CRED = Config.dig(:database, :mysql)
-
       using Mysql2Extender
+      using TimeStringFormatChanger
+
+      DB_CRED = Config.dig(:database, :mysql)
 
       class << self
         def open
@@ -44,18 +45,18 @@ module EnvLog
                  DATA_TABLE.`air-pres`,
                  DATA_TABLE.rssi,
                  DATA_TABLE.vbat,
-                 DATA_TABLE.vbus,
+                 DATA_TABLE.vbus
               from SENSOR_TABLE left join DATA_TABLE
                   on SENSOR_TABLE.id = DATA_TABLE.sensor and
-                     SENSOR_TABLE.mtime = DATA_TABLE.timw
-              when addr is not NULL;
+                     SENSOR_TABLE.mtime = DATA_TABLE.time
+              where addr is not NULL;
         EOQ
 
         ret = rows.inject([]) { |m, n|
           m << {
             :id    => n[0],
-            :ctime => n[1],
-            :mtime => n[2],
+            :ctime => n[1].to_s,
+            :mtime => n[2].to_s,
             :descr => n[3],
             :state => n[4],
             :temp  => n[5],
@@ -72,19 +73,35 @@ module EnvLog
 
       def get_latest_value(id)
         row = @db.get_first_row(<<~EOQ, :as => :array)
-          select time, temp, humidity, `air-pres`, rssi, vbat, vbus
-              from DATA_TABLE where sensor = "#{id}" order by time desc limit 1;
+          select state, mtime from SENSOR_TABLE where id = "#{id}";
         EOQ
 
-        ret = {
-          :time  => row[0],
-          :temp  => row[1],
-          :hum   => row[2],
-          :"a/p" => row[3],
-          :rssi  => row[4],
-          :vbat  => row[5],
-          :vbus  => row[6],
-        }
+        if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "PAUSE"
+          ret  = {
+            :time  => row[1].to_s,
+            :state => row[0]
+          }
+
+        else
+          stat = row[0]
+
+          row = @db.get_first_row(<<~EOQ, :as => :array)
+            select time, temp, humidity, `air-pres`, rssi, vbat, vbus
+                from DATA_TABLE
+                where sensor = "#{id}" order by time desc limit 1;
+          EOQ
+
+          ret = {
+            :time  => row[0].to_s,
+            :temp  => row[1],
+            :hum   => row[2],
+            :"a/p" => row[3],
+            :rssi  => row[4],
+            :vbat  => row[5],
+            :vbus  => row[6],
+            :state => stat
+          }
+        end
 
         return ret
       end
@@ -108,7 +125,7 @@ module EnvLog
         ret = {:time => [], :temp => [], :hum => [], :"a/p" => []}
 
         rows.each { |row|
-          ret[:time]  << row[0]
+          ret[:time]  << row[0].to_s
           ret[:temp]  << row[1]
           ret[:hum]   << row[2]
           ret[:"a/p"] << row[3]
@@ -118,11 +135,11 @@ module EnvLog
       end
 
       def poll_sensor
-        @db.query(<<~EOQ, :as => :array)
+        rows = @db.query(<<~EOQ, :as => :array)
           select id, mtime from SENSOR_TABLE where addr is not NULL;
         EOQ
 
-        return rows.inject({}) {|m, n| m[n[0]] = n[1]; m}
+        return rows.inject({}) {|m, n| m[n[0]] = n[1].to_s; m}
       end
     end
   end

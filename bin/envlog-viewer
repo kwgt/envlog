@@ -39,7 +39,6 @@ require "#{LIB_DIR}/log"
 #
 OptionParser.new { |opt|
   opt.version = EnvLog::VERSION
-  opt.banner += "[options]"
 
   opt.on("-c FILE", "--config-file=FILE") { |file|
     $config_file = file
