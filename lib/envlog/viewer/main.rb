@@ -52,7 +52,7 @@ module EnvLog
           end
         }
 
-      rescue
+      ensure
         db&.close
       end
     end
