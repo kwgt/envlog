@@ -16,6 +16,16 @@ Use the file to install it with the gem command.
 $ gem install pkg/envlog-0.x.x.gem
 ```
 
+This gem also uses MySQL (or MariaDB) and SQLite3 as its choice. for this reason, dependencies for the database interface are not specified in gemspec . Please install one of the gems beforehand.
+
+```
+$ gem install sqlite3
+```
+or
+```
+$ gem install mysql2
+```
+
 ### sensor and gateway devices
 Both can be built using [PlatformIO](https://platformio.org/). Edit the source "src/main.ino" and change the settings, and then build it as follows.
 
@@ -75,6 +85,9 @@ options:
   <dd>User registration for digest authentication is performed (Digest authentication settings (e.g., enable/disable, path for password file, etc.) are specified in the configurationpecify this option, shall add your username and password to the addtional arguments.
 file). </dd>
 </dl>
+
+## How to bootstrap
+T.B.D
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at https://github.com/kwgt/envlog
