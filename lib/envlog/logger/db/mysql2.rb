@@ -117,7 +117,7 @@ module EnvLog
           db.query("commit;")
 
         rescue NotUpdated
-          Log.debug("mysql2") {"sekip seq:#{data["seq"]}"}
+          Log.debug("mysql2") {"skip seq:#{data["seq"]}"}
           db.query("rollback;")
 
         rescue => e
