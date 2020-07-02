@@ -104,8 +104,6 @@ module EnvLog
       begin
         db.query("start transaction;")
 
-        db.query("comit;")
-
         #
         # センサー定義テーブル
         #   ※MariaDBでは、timestampを含むテーブルを作成した場合、Extraに
