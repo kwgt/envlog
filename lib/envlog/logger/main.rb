@@ -14,7 +14,7 @@ module EnvLog
         Log.info("main") {"start logger"}
 
         Config[:source].each {|src| InputSource.add_source(src)}
-        InputSource.wait
+        InputSource.run
       end
     end
   end

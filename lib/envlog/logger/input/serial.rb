@@ -37,10 +37,11 @@ module EnvLog
                 Log.error(tty) {"rejected #{e.data.inspect}"}
 
               rescue Exit
-                Log.info(tty) {"exit serial input thread"}
                 break
               end
             }
+
+            Log.info(tty) {"exit serial input thread"}
           }
         end
         private :add_serial_source
