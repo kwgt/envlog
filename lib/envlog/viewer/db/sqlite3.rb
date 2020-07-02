@@ -8,6 +8,7 @@
 #
 
 require 'sqlite3'
+require "#{LIB_DIR}/db/sqlite3.rb"
 
 module EnvLog
   module Viewer
