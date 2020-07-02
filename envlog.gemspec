@@ -49,4 +49,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "em-websocket", "~> 0.5.1"
   spec.add_dependency "msgpack-rpc-stack", "~> 0.7.1"
   spec.add_dependency "sassc", "~> 2.4.0"
+  spec.add_dependency "json_schemer", "~> 0.2.11"
 end
