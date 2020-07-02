@@ -8,14 +8,18 @@
 #
 
 require 'mysql2'
+require "#{LIB_DIR + "mysql2"}"
 
 module EnvLog
 	module Database
+    using Mysql2Extender
+
     DB_CRED = Config.dig(:database, :mysql)
 
     class << self
       def open_database
         db = Mysql2::Client.new(DB_CRED) 
+        db.query_options.merge!(:as => :array)
 
         yield(db)
 
@@ -23,6 +27,73 @@ module EnvLog
         db&.close
       end
       private :open_database
+
+      def add_device(addr, descr, psrc)
+        open_database { |db|
+          begin
+            db.query("start transaction;")
+
+            row = db.get_first_row(<<~EOQ, :as => :array)
+              select id, state from SENSOR_TABLE where addr = "#{addr}";
+            EOQ
+
+            if not row
+              #
+              # 新規登録の場合
+              #
+              id = SecureRandom.uuid
+
+              Log.info("add new device #{id[0,8]} (#{addr})")
+
+              db.query(<<~EOQ)
+                insert into SENSOR_TABLE
+                    values ("#{addr}",
+                            "#{id}",
+                            NOW(),
+                            NOW(),
+                            #{descr.to_mysql},
+                            "#{psrc.upcase}",
+                            "READY",
+                            NULL);
+              EOQ
+
+            else
+              id = row[0]
+              st = row[1]
+
+              Log.info("add new device #{id[0,8]} (#{addr})")
+
+              if st == "UNKNWON"
+                #
+                # 不明デバイスとして登録済みの場合
+                #
+                db.query(<<~EOQ)
+                  update SENSOR_TABLE
+                      set mtime  = NOW(),
+                          descr  = #{descr.to_mysql},
+                          `pow-source` = "#{psrc.upcase}",
+                          state        = "READY",
+                          `last-seq`   = NULL
+                      where id = "#{id}";
+                EOQ
+
+              else
+                #
+                # 稼働中のデバイスが指定された場合
+                #
+                raise DeviceBusy.new("device #{addr} is working now")
+              end
+            end
+
+            db.query("commit");
+
+          rescue => e
+            Log.error("error occurrd (#{e.message})")
+            db.query("rollback");
+            raise(e)
+          end
+        }
+      end
     end
 
     #

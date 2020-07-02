@@ -8,7 +8,8 @@
 #
 
 require 'sqlite3'
-require "#{LIB_DIR}/db/sqlite3"
+require 'securerandom'
+require "#{LIB_DIR + "db"}"
 
 module EnvLog
 	module Database
@@ -29,6 +30,76 @@ module EnvLog
       end
       private :open_database
 
+      def add_device(addr, descr, psrc)
+        open_database { |db|
+          begin
+            db.transaction
+
+            row = db.get_first_row(<<~EOQ, addr)
+              select id, state from SENSOR_TABLE where addr = ?;
+            EOQ
+
+            if not row
+              #
+              # 新規登録の場合
+              #
+              id = SecureRandom.uuid
+
+              Log.info("add new device #{id[0,8]} (#{addr})")
+
+              db.execute(<<~EOQ, addr, SecureRandom.uuid, descr, psrc)
+                insert into SENSOR_TABLE
+                    values (?,
+                            ?,
+                            datetime('now', 'localtime'),
+                            datetime('now', 'localtime'),
+                            ?,
+                            ?,
+                            "READY",
+                            NULL);
+              EOQ
+
+
+            else
+              id = row[0]
+              st = row[1]
+
+              Log.info("add new device #{id[0,8]} (#{addr})")
+
+              if st == "UNKNOWN"
+                #
+                # 不明デバイスとして登録済みだった場合
+                #
+                db.execute(<<~EOQ, descr, psrc, id)
+                  update SENSOR_TABLE
+                      set mtime        = datetime('now', 'localtime'),
+                          descr        = ?,
+                          `pow-source` = ?,
+                          state        = "READY",
+                          `last-seq`   = NULL
+                      where id = ?;
+                EOQ
+
+              else
+                #
+                # 稼働中の出デバイスが指定された場合
+                #
+                raise DeviceBusy.new("device #{addr} is working now")
+              end
+            end
+
+            db.commit;
+
+          rescue => e
+            Log.error("error occurrd (#{e.message})")
+            db.rollback
+            raise(e)
+          end
+        }
+      end
+
+      def remove_device(id)
+      end
     end
 
     #

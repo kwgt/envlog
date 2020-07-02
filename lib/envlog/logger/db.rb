@@ -7,6 +7,8 @@
 #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
 #
 
+require "#{LIB_DIR + "db"}"
+
 module EnvLog
   module Logger
     module DBA
