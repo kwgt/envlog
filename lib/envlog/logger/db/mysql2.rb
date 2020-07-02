@@ -75,7 +75,11 @@ module EnvLog
           db&.close
         end
 
-        def put_data(id, data, state)
+        def put_data(id, ts, data, state)
+          Log.debug("mysql2") {
+            "put_data(#{id[0,8]}, #{ts}, #{data["seq"]})"
+          }
+
           db = Mysql2::Client.new(DB_CRED)
 
           db.query("start transaction;")
@@ -86,12 +90,12 @@ module EnvLog
 
           raise(NotUpdated) if data["seq"] == seq
 
-          now = Time.now.to_s
+          Log.debug("mysql2") {"insert #{ts}.#{id}"}
 
           db.query(<<~EOQ)
             insert into DATA_TABLE
                 values ("#{id}",
-                        "#{now}",
+                        "#{ts}",
                         #{data["temp"]},
                         #{data["hum"]},
                         #{data["a/p"]},
@@ -100,10 +104,12 @@ module EnvLog
                         #{data["vbus"]});
           EOQ
 
+          Log.debug("mysql2") {"update #{ts}.#{id}"}
+
           db.query(<<~EOQ)
             update SENSOR_TABLE
                 set `last-seq` = #{data["seq"]},
-                    mtime = "#{now}",
+                    mtime = "#{ts}",
                     state = "#{state}"
                 where id = "#{id}";
           EOQ
@@ -111,9 +117,11 @@ module EnvLog
           db.query("commit;")
 
         rescue NotUpdated
+          Log.debug("mysql2") {"sekip seq:#{data["seq"]}"}
           db.query("rollback;")
 
         rescue => e
+          Log.error("mysql2") {"error occurd \"#{e.message}\""}
           db.query("rollback;")
           raise(e)
 
@@ -122,6 +130,8 @@ module EnvLog
         end
 
         def set_stall(id)
+          Log.debug("mysql2") {"set_stall(#{id[0,8]})"}
+
           db = Mysql2::Client.new(DB_CRED)
 
           db.query("start transaction;")
@@ -134,6 +144,7 @@ module EnvLog
           db.query("commit;")
 
         rescue => e
+          Log.error("mysql2") {"error occurd \"#{e.message}\""}
           db.query("rollback;")
           raise(e)
 
@@ -141,18 +152,21 @@ module EnvLog
           db&.close
         end
 
-        def update_timestamp(id)
+        def update_timestamp(id, ts)
+          Log.debug("mysql2") {"update_timestamp(#{id[0,8]}, #{ts})"}
+
           db = Mysql2::Client.new(DB_CRED)
 
           db.query("start transaction;")
 
           db.query(<<~EOQ)
-            update SENSOR_TABLE set mtime = NOW() where id = "#{id}";
+            update SENSOR_TABLE set mtime = "#{ts}" where id = "#{id}";
           EOQ
 
           db.query("commit;")
 
         rescue => e
+          Log.error("mysql2") {"error occurd \"#{e.message}\""}
           db.query("rollback;")
           raise(e)
 
@@ -160,7 +174,9 @@ module EnvLog
           db&.close
         end
 
-        def regist_unknown(addr)
+        def regist_unknown(addr, ts)
+          Log.debug("mysql2") {"regist_unknown(#{addr}, #{ts})"}
+
           db = Mysql2::Client.new(DB_CRED)
 
           db.query("start transaction;")
@@ -169,8 +185,8 @@ module EnvLog
             insert into SENSOR_TABLE
                 values ("#{addr}",
                         "#{SecureRandom.uuid}",
-                        NOW(),
-                        NOW(),
+                        "#{ts}",
+                        "#{ts}",
                         NULL,
                         "UNKNOWN",
                         "UNKNOWN",
@@ -180,6 +196,7 @@ module EnvLog
           db.query("commit;")
 
         rescue => e
+          Log.error("mysql2") {"error occurd \"#{e.message}\""}
           db.query("rollback;")
           raise(e)
 

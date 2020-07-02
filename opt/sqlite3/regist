@@ -80,7 +80,7 @@ begin
       #
       # 不明デバイスもしくとして既に登録されていた場合
       #
-      db.execute2(<<~EOQ, desc, psrc, id)
+      db.execute2(<<~EOQ, descr, psrc, id)
         update SENSOR_TABLE
             set mtime        = datetime('now', 'localtime'),
                 descr        = ?,

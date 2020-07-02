@@ -79,9 +79,13 @@ module EnvLog
           return ret
         end
 
-        def put_data(id, data, state)
+        def put_data(id, ts, data, state)
           mutex.synchronize {
             begin
+              Log.debug("sqlite3") {
+                "put_data(#{id[0,8]}, #{ts}, #{data["seq"]})"
+              }
+
               db.transaction
 
               seq  = db.get_first_value(<<~EOQ, id)
@@ -90,10 +94,9 @@ module EnvLog
 
               raise(NotUpdated) if data["seq"] == seq
 
-              now  = Time.now.to_i
               args = [
                 id,
-                now,
+                ts,
                 data["temp"],
                 data["hum"],
                 data["a/p"],
@@ -105,7 +108,7 @@ module EnvLog
               db.query(<<~EOQ, *args)
                 insert into DATA_TABLE
                     values(?,
-                           datetime(?, 'unixepoch', 'localtime'),
+                           datetime(?),
                            ?,
                            ?,
                            ?,
@@ -114,10 +117,10 @@ module EnvLog
                            ?);
               EOQ
 
-              db.query(<<~EOQ, data['seq'], now, state, id)
+              db.query(<<~EOQ, data['seq'], ts, state, id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
-                        mtime = datetime(?, 'unixepoch', 'localtime'),
+                        mtime = datetime(?),
                         state = ?
                     where id = ?;
               EOQ
@@ -125,9 +128,11 @@ module EnvLog
               db.commit
 
             rescue NotUpdated
+              Log.debug("sqlite3") {"sekip seq:#{data["seq"]}"}
               db.rollback
 
             rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
               db.rollback
               raise(e)
             end
@@ -137,6 +142,8 @@ module EnvLog
         def set_stall(id)
           mutex.synchronize {
             begin
+              Log.debug("sqlite3") {"set_stall(#{id[0,8]})"}
+
               db.transaction
 
               db.execute(<<~EOQ, id)
@@ -149,42 +156,47 @@ module EnvLog
               db.commit
 
             rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
               db.rollback
               raise(e)
             end
           }
         end
 
-        def update_timestamp(id)
+        def update_timestamp(id, ts)
           mutex.synchronize {
             begin
+              Log.debug("sqlite3") {"update_timestamp(#{id[0,8]}, #{ts})"}
+
               db.transaction
 
-              db.execute(<<~EOQ, addr)
-                update SENSOR_TABLE
-                    set mtime = datetime('now', 'localtime') where id = ?;
+              db.execute(<<~EOQ, ts, id)
+                update SENSOR_TABLE set mtime = datetime(?) where id = ?;
               EOQ
 
               db.commit
 
             rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
               db.rollback
               raise(e)
             end
           }
         end
 
-        def regist_unknown(addr)
+        def regist_unknown(addr, ts)
           mutex.synchronize {
             begin
+              Log.debug("sqlite3") {"regist_unknown(#{addr}, #{ts})"}
+
               db.transaction
 
               db.execute(<<~EOQ, addr, SecureRandom.uuid)
                 insert into SENSOR_TABLE
                     values (?,
                             ?,
-                            datetime('now', 'localtime'),
-                            datetime('now', 'localtime'),
+                            datetime(?),
+                            datetime(?),
                             NULL,
                             "UNKNOWN",
                             "UNKNOWN",
@@ -194,6 +206,7 @@ module EnvLog
               db.commit
 
             rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
               db.rollback
               raise(e)
             end
