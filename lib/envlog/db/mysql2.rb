@@ -94,6 +94,25 @@ module EnvLog
           end
         }
       end
+
+      def remove_device(id)
+        open_database { |db|
+          begin
+            db.query("start transaction;")
+
+            db.query(<<~EOQ)
+              delete from SENSOR_TABLE where id = "#{id}";
+            EOQ
+
+            db.query("commit;")
+
+          rescue => e
+            Log.error("error occurrd (#{e.message})")
+            db.query("rollback;")
+            raise(e)
+          end
+        }
+      end
     end
 
     #

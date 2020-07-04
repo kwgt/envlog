@@ -21,8 +21,19 @@ module EnvLog
 
       class << self
         def open
-          ret = self.allocate
-          ret.instance_variable_set(:@db, Mysql2::Client.new(DB_CRED))
+          obj = self.allocate
+          obj.instance_variable_set(:@db, Mysql2::Client.new(DB_CRED))
+
+          if block_given?
+            begin
+              ret = yield(obj)
+            ensure
+              obj.close
+            end
+
+          else
+            ret = obj
+          end
 
           return ret
         end
