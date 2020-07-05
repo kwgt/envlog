@@ -1,14 +1,21 @@
 definition:
-  - &BT_ADDR_PATTERN
+  - &MAC_ADDR_PATTERN
     "^([0-9a-f]{2}:){5}[0-9a-f]{2}$" 
 
-  - &BT_ADDR
+  - &MAC_ADDR
     type: string
-    pattern: *BT_ADDR_PATTERN
+    pattern: *MAC_ADDR_PATTERN
 
   - &DEVICE_ADDR
     oneOf:
-      - *BT_ADDR
+      - *MAC_ADDR
+
+  - &POWER_SOURCE
+    type: string
+    enum:
+      - BATTERY       # 外部電源としてバッテリーを使用
+      - STABLE        # 外部電源として安定化電源を使用
+      - UNKNOWN       # 不明
 
 CONFIG:
   $schema: http://json-schema.org/draft-07/schema#
@@ -322,3 +329,15 @@ INPUT_DATA:
       maximum: 10.0
 
   additionalProperties: false
+
+DEVICE_ADDR:
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    デバイスアドレスの構造です。
+  <<: *DEVICE_ADDR
+
+POWER_SOURCE:
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    電源種別の構造です。
+  <<: *POWER_SOURCE

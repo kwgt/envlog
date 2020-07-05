@@ -34,19 +34,16 @@ module EnvLog
       end
 
       class << self
+        using TimeStringFormatChanger
+
+        def queue
+          return @queue  ||= Thread::Queue.new
+        end
+
         def threads
           return @thread ||= []
         end
         private :threads
-
-        def sensor_tbl
-          if not @sensor_tbl
-            @sensor_tbl = DBA.poll_sensor.inject({}) { |m, n|
-              m[n[0]] = Time.parse(n.dig(1, :mtime)); m
-            }
-          end
-          return @sensor_tbl
-        end
 
         def battery_dead(id, addr)
           Log.warn("input") {
@@ -64,51 +61,17 @@ module EnvLog
           data = JSON.parse(json)
           raise InvalidData.new(data) if not Schema.valid?(:INPUT_DATA, data)
 
-          info = DBA.get_sensor_info(data["addr"])
+          # データベースへの登録に時間がかかり、処理が遅延する場合が
+          # あったのでスレッドを分離し非同期処理に変更した。
+          # 登録処理本体はentry_threadで行なっている。
+          queue << Time.now.to_s
+          queue << data
 
-          if info
-            case info[:state]
-            when "READY", "NORMAL", "STALL"
-              case info[:powsrc]
-              when "BATTERY"
-                if data["vbus"] < 4.0
-                  battery_dead(info[:id], data["addr"])
-                  state = "DEAD-BATTERY"
-                else
-                  state = "NORMAL"
-                end
-
-              else
-                state = "NORMAL"
-              end
-
-              DBA.put_data(info[:id], data, state)
-
-            when "DEAD-BATTERY"
-              if data["vbus"] >= 4.0
-                battery_recover(info[:id], data["addr"])
-                state = "NORMAL"
-
-              else
-                state = "DEAD-BATTERY"
-              end
-
-              DBA.put_data(info[:id], data, state)
-
-            when "UNKNOWN"
-              DBA.update_timestamp(info[:id])
-
-            when "PAUSE"
-              # ignore
-            end
-
-          else
-            Log.error("input") {"found unknown device (#{data["addr"]})"}
-            DBA.regist_unknown(data["addr"])
-          end
+        rescue InvalidData
+          Log.error("input") {"invalid data received, ignore"}
 
         rescue JSON::ParserError
-          raise ParseError.new(json)
+          Log.error("input") {"broken data received, ignore"}
         end
         private :put_data
 
@@ -138,6 +101,65 @@ module EnvLog
         end
         private :monitor_thread
 
+        def entry_thread
+          Log.info("input") {"start data entry thread"}
+
+          loop {
+            begin
+              ts   = queue.deq
+              data = queue.deq
+              info = DBA.get_sensor_info(data["addr"])
+
+              if info
+                case info[:state]
+                when "READY", "NORMAL", "STALL"
+                  case info[:powsrc]
+                  when "BATTERY"
+                    if data["vbus"] < 4.0
+                      battery_dead(info[:id], data["addr"])
+                      state = "DEAD-BATTERY"
+                    else
+                      state = "NORMAL"
+                    end
+
+                  else
+                    state = "NORMAL"
+                  end
+
+                  DBA.put_data(info[:id], ts, data, state)
+
+                when "DEAD-BATTERY"
+                  if data["vbus"] >= 4.0
+                    battery_recover(info[:id], data["addr"])
+                    state = "NORMAL"
+
+                  else
+                    state = "DEAD-BATTERY"
+                  end
+
+                  DBA.put_data(info[:id], ts, data, state)
+
+                when "UNKNOWN"
+                  DBA.update_timestamp(info[:id], ts)
+
+                when "PAUSE"
+                  # ignore
+                end
+
+              else
+                Log.error("input") {"found unknown device (#{data["addr"]})"}
+                DBA.regist_unknown(data["addr"], ts)
+              end
+
+            rescue Exit
+              break
+            end
+          }
+
+          Log.info("input") {"exit data entry thread"}
+        end
+        private :entry_thread
+
         def add_source(src)
           case src[:type]
           when "serial"
@@ -151,8 +173,9 @@ module EnvLog
           end
         end
 
-        def wait
+        def run
           threads << Thread.fork {monitor_thread()}
+          threads << Thread.fork {entry_thread()}
           threads.each {|thread| thread.join}
         end
       end

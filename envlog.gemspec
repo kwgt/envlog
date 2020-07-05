@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   # added into git.
   spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
     `git ls-files -z`.split("\x0").reject { |f|
-      f.match(%r{^(test|spec|features|gateway|sensor|run\.sh)/})
+      f.match(%r{^(doc|test|spec|features|gateway|sensor|run\.sh)/})
     }
   end
 
@@ -49,4 +49,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "em-websocket", "~> 0.5.1"
   spec.add_dependency "msgpack-rpc-stack", "~> 0.7.1"
   spec.add_dependency "sassc", "~> 2.4.0"
+  spec.add_dependency "json_schemer", "~> 0.2.11"
 end

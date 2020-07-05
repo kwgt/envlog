@@ -33,16 +33,18 @@
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
+#include <esp_bt_main.h>
 #endif /* defined(USE_BLE) */
 
 #ifdef USE_WIFI
 #include <WiFi.h>
 #include <WiFiUdp.h>
+#include <esp_wifi.h>
 #endif /* defined(USE_WIFI) */
 
 #define DATA_FORMAT_VERSION   3
 #define T_PERIOD              1         // Transmission period
-#define S_PERIOD              9       // Sleeping period
+#define S_PERIOD              119       // Sleeping period
                              
 #define LO_BYTE(x)            (uint8_t)(((x) >> 0) & 0xff)
 #define HI_BYTE(x)            (uint8_t)(((x) >> 8) & 0xff)
@@ -136,6 +138,13 @@ send_data()
   delay(T_PERIOD * 1000);
   advertising->stop();
 }
+
+void
+stop_comm()
+{
+  esp_bluedroid_disable();
+  esp_bt_controller_disable();
+}
 #endif /* defined(USE_BLE) */
 
 #ifdef USE_WIFI
@@ -183,6 +192,12 @@ send_data()
   udp.beginPacket(SERVER_ADDR, SERVER_PORT);
   udp.write(buf, sizeof(buf));
   udp.endPacket();
+}
+
+void
+stop_comm()
+{
+  esp_wifi_stop();
 }
 #endif /* defined(USE_WIFI) */
 
@@ -251,5 +266,8 @@ loop()
 
   seq++;
 
-  esp_deep_sleep_start();
+  stop_comm();
+
+  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+  esp_deep_sleep(S_PERIOD * 1000000);
 }
