@@ -128,7 +128,7 @@ module EnvLog
               db.commit
 
             rescue NotUpdated
-              Log.debug("sqlite3") {"sekip seq:#{data["seq"]}"}
+              Log.debug("sqlite3") {"skip seq:#{data["seq"]}"}
               db.rollback
 
             rescue => e

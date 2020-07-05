@@ -90,7 +90,7 @@ module EnvLog
 
           raise(NotUpdated) if data["seq"] == seq
 
-          Log.debug("mysql2") {"insert #{ts}.#{id}"}
+          Log.debug("mysql2") {"insert #{ts}.#{id[0,8]}"}
 
           db.query(<<~EOQ)
             insert into DATA_TABLE
@@ -99,12 +99,12 @@ module EnvLog
                         #{data["temp"]},
                         #{data["hum"]},
                         #{data["a/p"]},
-                        #{data["rssi"]},
+                        #{data["rssi"] || "null"},
                         #{data["vbat"]},
                         #{data["vbus"]});
           EOQ
 
-          Log.debug("mysql2") {"update #{ts}.#{id}"}
+          Log.debug("mysql2") {"update #{ts}.#{id[0,8]}"}
 
           db.query(<<~EOQ)
             update SENSOR_TABLE
@@ -117,7 +117,7 @@ module EnvLog
           db.query("commit;")
 
         rescue NotUpdated
-          Log.debug("mysql2") {"sekip seq:#{data["seq"]}"}
+          Log.debug("mysql2") {"skip seq:#{data["seq"]}"}
           db.query("rollback;")
 
         rescue => e

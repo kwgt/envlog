@@ -67,8 +67,11 @@ module EnvLog
           queue << Time.now.to_s
           queue << data
 
+        rescue InvalidData
+          Log.error("input") {"invalid data received, ignore"}
+
         rescue JSON::ParserError
-          raise ParseError.new(json)
+          Log.error("input") {"broken data received, ignore"}
         end
         private :put_data
 
