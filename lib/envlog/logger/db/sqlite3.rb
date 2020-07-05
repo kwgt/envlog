@@ -9,7 +9,6 @@
 
 require 'sqlite3'
 require 'securerandom'
-require "#{LIB_DIR}/db/sqlite3.rb"
 
 module EnvLog
   module Logger

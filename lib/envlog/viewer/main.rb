@@ -30,21 +30,11 @@ module EnvLog
       end
 
       def sensor_tbl
-        @sensor_tbl ||= -> {
-          begin
-            db = DBA.open()
-            return db.poll_sensor
-          ensure
-            db&.close
-          end
-        }.()
-
-        return @sensor_tbl 
+        return @sensor_tbl ||= DBA.open {|db| db.poll_sensor()}
       end
 
       def poll_sensor
-        db = DBA.open()
-        res = db.poll_sensor()
+        res = DBA.open {|db| db.poll_sensor()}
 
         res.each_pair { |id, mtime|
           if mtime > sensor_tbl[id]
@@ -53,9 +43,6 @@ module EnvLog
             sensor_tbl[id] = mtime
           end
         }
-
-      ensure
-        db&.close
       end
     end
   end

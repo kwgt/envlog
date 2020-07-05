@@ -19,13 +19,24 @@ module EnvLog
         def open
           db  = SQLite3::Database.new(DB_PATH.to_s)
           db.busy_handler {
-            Log.error("db") {"databse access is conflict, retry"}
+            Log.error("sqlite3") {"databse access is conflict, retry"}
             sleep(0.1)
             true
           }
 
-          ret = self.allocate
-          ret.instance_variable_set(:@db, db)
+          obj = self.allocate
+          obj.instance_variable_set(:@db, db)
+
+          if block_given?
+            begin
+              ret = yield(obj)
+            ensure
+              obj.close
+            end
+
+          else
+            ret = obj
+          end
 
           return ret
         end

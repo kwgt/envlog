@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
   # added into git.
   spec.files         = Dir.chdir(File.expand_path('..', __FILE__)) do
     `git ls-files -z`.split("\x0").reject { |f|
-      f.match(%r{^(test|spec|features|gateway|sensor|run\.sh)/})
+      f.match(%r{^(doc|test|spec|features|gateway|sensor|run\.sh)/})
     }
   end
 

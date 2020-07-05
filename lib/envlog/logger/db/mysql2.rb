@@ -10,7 +10,6 @@
 require 'mysql2'
 require 'securerandom'
 require "#{LIB_DIR}/mysql2"
-require "#{LIB_DIR}/db/mysql2"
 
 module EnvLog
   module Logger
