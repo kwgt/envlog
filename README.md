@@ -48,6 +48,9 @@ envlog-logger [options]
 options:
     -c, --config-file=FILE
     -s, --dump-config-template
+    -l, --list-device
+    -a, --add-device=ADDR,POWER-SOURCE,DESCR
+    -r, --remove-device=ADDR
 ```
 
 #### options
@@ -57,6 +60,15 @@ options:
 
   <dt>-s, --dump-config-template</dt>
   <dd>Outputs the template of configuration file to the STDOUT. </dd>
+
+  <dt>-l, --list-device</dt>
+  <dd>Show a list of currently registered sensor devices.</dd>
+
+  <dt>-a, --add-device=ADDR,POWER-SOURCE,DESCR</dt>
+  <dd>Register a sensor device. In order to receive the data, the sensor device must be activated with this option It is. The same goes for sensor devices that are automatically registered as unknown devices.</dd>
+
+  <dt>-r, --remove-device=ADDR</dt>
+  <dd>De-register the sensor device.</dd>
 </dl>
 
 

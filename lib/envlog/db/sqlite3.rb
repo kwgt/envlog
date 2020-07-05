@@ -30,6 +30,35 @@ module EnvLog
       end
       private :open_database
 
+      def device_exist?(addr)
+        open_database { |db|
+          n = db.get_first_value(<<~EOQ, addr)
+            select count(*) from SENSOR_TABLE where addr = ?;
+          EOQ
+
+          return n.zero?.!
+        }
+      end
+
+      def list_device
+        open_database { |db|
+          rows = db.execute(<<~EOQ)
+            select id, addr, state, descr from SENSOR_TABLE;
+          EOQ
+
+          ret = rows.inject([]) { |m, n|
+            m << {
+              :id    => n[0],
+              :addr  => n[1],
+              :state => n[2],
+              :descr => n[3],
+            }
+          }
+
+          return ret
+        }
+      end
+
       def add_device(addr, descr, psrc)
         open_database { |db|
           begin
@@ -45,7 +74,7 @@ module EnvLog
               #
               id = SecureRandom.uuid
 
-              Log.info("add new device #{id[0,8]} (#{addr})")
+              Log.info("sqlite3"){"add new device #{id[0,8]} (#{addr})"}
 
               db.execute(<<~EOQ, addr, SecureRandom.uuid, descr, psrc)
                 insert into SENSOR_TABLE
@@ -64,7 +93,7 @@ module EnvLog
               id = row[0]
               st = row[1]
 
-              Log.info("add new device #{id[0,8]} (#{addr})")
+              Log.info("sqlite3"){"add new device #{id[0,8]} (#{addr})"}
 
               if st == "UNKNOWN"
                 #
@@ -91,14 +120,30 @@ module EnvLog
             db.commit;
 
           rescue => e
-            Log.error("error occurrd (#{e.message})")
+            Log.error("sqlite3"){"error occurrd (#{e.message})"}
             db.rollback
             raise(e)
           end
         }
       end
 
-      def remove_device(id)
+      def remove_device(addr)
+        open_database { |db|
+          begin
+            db.transaction
+
+            db.execute(<<~EOQ, addr)
+              delete from SENSOR_TABLE where addr = ?;
+            EOQ
+
+            db.commit
+
+          rescue => e
+            Log.error("sqlite3"){"error occurrd (#{e.message})"}
+            db.rollback
+            raise(e)
+          end
+        }
       end
     end
 

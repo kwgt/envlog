@@ -28,6 +28,35 @@ module EnvLog
       end
       private :open_database
 
+      def device_exist?(addr)
+        open_database { |db|
+          n = db.get_first_value(<<~EOQ)
+            select count(*) from SENSOR_TABLE where addr = "#{addr}";
+          EOQ
+
+          return n.zero?.!
+        }
+      end
+
+      def list_device
+        open_database { |db|
+          rows = db.query(<<~EOQ, :as => :array)
+            select id, addr, state, descr from SENSOR_TABLE;
+          EOQ
+
+          ret = rows.inject([]) { |m, n|
+            m << {
+              :id    => n[0],
+              :addr  => n[1],
+              :state => n[2],
+              :descr => n[3],
+            }
+          }
+
+          return ret
+        }
+      end
+
       def add_device(addr, descr, psrc)
         open_database { |db|
           begin
@@ -43,7 +72,7 @@ module EnvLog
               #
               id = SecureRandom.uuid
 
-              Log.info("add new device #{id[0,8]} (#{addr})")
+              Log.info("mysql2"){"add new device #{id[0,8]} (#{addr})"}
 
               db.query(<<~EOQ)
                 insert into SENSOR_TABLE
@@ -61,9 +90,9 @@ module EnvLog
               id = row[0]
               st = row[1]
 
-              Log.info("add new device #{id[0,8]} (#{addr})")
+              Log.info("mysql2"){"add new device #{id[0,8]} (#{addr})"}
 
-              if st == "UNKNWON"
+              if st == "UNKNOWN"
                 #
                 # 不明デバイスとして登録済みの場合
                 #
@@ -88,26 +117,26 @@ module EnvLog
             db.query("commit");
 
           rescue => e
-            Log.error("error occurrd (#{e.message})")
+            Log.error("mysql2"){"error occurrd (#{e.message})"}
             db.query("rollback");
             raise(e)
           end
         }
       end
 
-      def remove_device(id)
+      def remove_device(addr)
         open_database { |db|
           begin
             db.query("start transaction;")
 
             db.query(<<~EOQ)
-              delete from SENSOR_TABLE where id = "#{id}";
+              delete from SENSOR_TABLE where addr = "#{addr}";
             EOQ
 
             db.query("commit;")
 
           rescue => e
-            Log.error("error occurrd (#{e.message})")
+            Log.error("mysql2"){"error occurrd (#{e.message})"}
             db.query("rollback;")
             raise(e)
           end
