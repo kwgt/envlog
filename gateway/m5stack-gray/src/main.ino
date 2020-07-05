@@ -9,8 +9,7 @@
 #include <BLEDevice.h>
 
 #define MANUFACTURER_ID     55229
-#define DATA_FORMAT_VERSION 2
-#define MAX_SENSORS         16
+#define DATA_FORMAT_VERSION 3
 
 #define N(x)                (sizeof(x)/sizeof(*(x)))
 #define U16(p) \
@@ -46,6 +45,8 @@ loop()
   int y;
 
   std::string dat;
+  uint8_t* cstr;
+  char addr[24];
   int seq;
   float temp;
   float hum;
@@ -63,20 +64,25 @@ loop()
     dev = list.getDevice(i);
     if (!dev.haveManufacturerData()) continue;
 
-    dat = dev.getManufacturerData();
+    dat  = dev.getManufacturerData();
+    cstr = (uint8_t*)dat.c_str();
 
-    if (U16(dat.c_str() + 0) != MANUFACTURER_ID) continue;
-    if (dat.c_str()[2] != DATA_FORMAT_VERSION) continue;
+    if (U16(cstr + 0) != MANUFACTURER_ID) continue;
+    if (cstr[2] != DATA_FORMAT_VERSION) continue;
 
-    seq  = (int)((uint8_t)dat.c_str()[3]);
-    temp = U16(dat.c_str() + 4)  / 100.0;
-    hum  = U16(dat.c_str() + 6)  / 100.0;
-    pres = U16(dat.c_str() + 8)  / 10.0;
-    vbat = U16(dat.c_str() + 10) / 100.0;
-    vbus = U16(dat.c_str() + 12) / 100.0;
+    seq  = (int)((uint8_t)cstr[3]);
+
+    sprintf(addr, "%02x:%02x:%02x:%02x:%02x:%02x",
+            cstr[4], cstr[5], cstr[6], cstr[7], cstr[8], cstr[9]);
+
+    temp = U16(cstr + 10) / 100.0;
+    hum  = U16(cstr + 12) / 100.0;
+    pres = U16(cstr + 14) / 10.0;
+    vbat = U16(cstr + 16) / 100.0;
+    vbus = U16(cstr + 18) / 100.0;
 
     M5.Lcd.setCursor(20, y, 1);
-    M5.Lcd.printf("sensor %s", dev.getAddress().toString().c_str());
+    M5.Lcd.printf("sensor %s", addr);
 
     M5.Lcd.setCursor(30, y + 10, 1);
     M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%", temp, hum);
@@ -89,7 +95,7 @@ loop()
                   dev.getRSSI(), vbat, vbus);
 
     Serial.printf("{");
-    Serial.printf("\"addr\":\"%s\",", dev.getAddress().toString().c_str());
+    Serial.printf("\"addr\":\"%s\",", addr);
     Serial.printf("\"seq\":%d,",      seq);
     Serial.printf("\"temp\":%.1f,",   temp);
     Serial.printf("\"hum\":%.1f,",    hum);

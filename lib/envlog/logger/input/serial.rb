@@ -17,30 +17,31 @@ module EnvLog
       class << self
         def add_serial_source(src)
           threads << Thread.fork {
-            tty  = src["port"]
-            $logger.info(tty) {"add serial input source"}
+            tty  = src[:port]
+            Log.info(tty) {"add serial input source"}
 
-            src  = src.select {|x| x != "type"}
+            src  = src.select {|x| x != :type}
             port = Serial.new(**src)
 
             loop {
               begin
                 json = port.gets
-                $logger.debug(tty) {"receive: #{json.dump}"}
+                Log.debug(tty) {"receive: #{json.dump}"}
 
                 put_data(json)
 
               rescue JSON::ParserError => e
-                $logger.error(tty) {"invalid json #{e.json.dump}"}
+                Log.error(tty) {"invalid json #{e.json.dump}"}
 
               rescue InvalidData => e
-                $logger.error(tty) {"rejected #{e.data.inspect}"}
+                Log.error(tty) {"rejected #{e.data.inspect}"}
 
               rescue Exit
-                $logger.info(tty) {"exit serial input thread"}
                 break
               end
             }
+
+            Log.info(tty) {"exit serial input thread"}
           }
         end
         private :add_serial_source

@@ -8,6 +8,7 @@
 #
 
 require "yaml"
+require "json_schemer"
 
 module EnvLog
   module Schema
@@ -15,7 +16,29 @@ module EnvLog
 
     class << self
       def read(path)
-        return YAML.load_file(path).deep_freeze
+        data = YAML.load_file(path)
+
+        data.keys.each {|key| data[key.to_sym] = data.delete(key)}
+        data.deep_freeze
+
+        @schema = data
+      end
+
+      def [](key)
+        raise("schema data not read yet") if not @schema
+
+        return @schema[key]
+      end
+
+      def validate(key, data)
+        raise("schema data not read yet") if not @schema
+
+        sch = JSONSchemer.schema(@schema[key])
+        return sch.validate(data).to_a
+      end
+
+      def valid?(key, data)
+        return validate(key, data).empty?
       end
     end
   end

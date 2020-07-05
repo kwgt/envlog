@@ -8,18 +8,25 @@
 #
 
 require 'sqlite3'
+require 'securerandom'
 
 module EnvLog
   module Logger
     module DBA
-      DB_PATH = Config.fetch_path("database", "sqlite3", "path")
-
-      class NotRegisterd < StandardError; end
-      class NotUpdated < StandardError; end
+      DB_PATH = Config.fetch_path(:database, :sqlite3, :path)
 
       class << self
         def db
-          return @db ||= SQLite3::Database.new(DB_PATH.to_s)
+          if not @db
+            @db = SQLite3::Database.new(DB_PATH.to_s)
+            @db.busy_handler {
+              Log.error("db") {"database access is conflict, retry."}
+              sleep(0.1)
+              true
+            }
+          end
+
+          return @db
         end
         private :db
 
@@ -28,62 +35,178 @@ module EnvLog
         end
         private :mutex
 
-        def sync
-          mutex.synchronize {yield()}
-        end
-        private :sync
+        def get_alives
+          rows = mutex.synchronize {
+            db.execute(<<~EOQ)
+              select addr, id from SENSOR_TABLE where addr is not NULL;
+            EOQ
+          }
 
-        def put_data(d)
-          sync {
+          return rows.inject([]) {|m, n| m << {:addr => n[0], :id => n[1]}}
+        end
+
+        def get_sensor_info(addr)
+          row = mutex.synchronize {
+            db.get_first_row(<<~EOQ, addr)
+              select id, `pow-source`, state
+                  from SENSOR_TABLE where addr = ?;
+            EOQ
+          }
+
+          if row
+            ret = {
+              :id     => row[0],
+              :powsrc => row[1],
+              :state  => row[2],
+            }
+
+          else
+            row = nil
+          end
+
+          return ret
+        end
+
+        def poll_sensor
+          rows = db.execute(<<~EOQ)
+            select id, mtime, state from SENSOR_TABLE where addr is not NULL;
+          EOQ
+
+          ret = rows.inject({}) { |m, n|
+            m[n[0]] = {:mtime => n[1], :state => n[2]}; m
+          }
+
+          return ret
+        end
+
+        def put_data(id, ts, data, state)
+          mutex.synchronize {
             begin
+              Log.debug("sqlite3") {
+                "put_data(#{id[0,8]}, #{ts}, #{data["seq"]})"
+              }
+
               db.transaction
 
-              id   = db.get_first_value(<<~EOQ, d["addr"])
-                select id from SENSOR_TABLE where addr = ?;
+              seq  = db.get_first_value(<<~EOQ, id)
+                select `last-seq` from SENSOR_TABLE where id = ?;
               EOQ
 
-              raise(NotRegisterd) if not id
-
-              seq  = db.get_first_value(<<~EOQ, d["addr"])
-                select `last-seq` from SENSOR_TABLE where addr = ?;
-              EOQ
-
-              raise(NotUpdated) if d["seq"] == seq
+              raise(NotUpdated) if data["seq"] == seq
 
               args = [
                 id,
-                d["temp"],
-                d["hum"],
-                d["a/p"],
-                d["rssi"],
-                d["vbat"],
-                d["vbus"]
+                ts,
+                data["temp"],
+                data["hum"],
+                data["a/p"],
+                data["rssi"],
+                data["vbat"],
+                data["vbus"]
               ]
 
               db.query(<<~EOQ, *args)
                 insert into DATA_TABLE
-                    values(?, datetime('now', 'localtime'), ?, ?, ?, ?, ?, ?);
+                    values(?,
+                           datetime(?),
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?,
+                           ?);
               EOQ
 
-              db.query(<<~EOQ, d['seq'], d["addr"])
+              db.query(<<~EOQ, data['seq'], ts, state, id)
                 update SENSOR_TABLE
                     set `last-seq` = ?,
-                        mtime = datetime('now', 'localtime')
-                    where addr = ?;
+                        mtime = datetime(?),
+                        state = ?
+                    where id = ?;
               EOQ
 
               db.commit
 
             rescue NotUpdated
-              db.rollback
-
-            rescue NotRegisterd => e
-              $logger.error("db") {
-                "unregister sensor requested (#{d["addr"]})"
-              }
+              Log.debug("sqlite3") {"skip seq:#{data["seq"]}"}
               db.rollback
 
             rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def set_stall(id)
+          mutex.synchronize {
+            begin
+              Log.debug("sqlite3") {"set_stall(#{id[0,8]})"}
+
+              db.transaction
+
+              db.execute(<<~EOQ, id)
+                update SENSOR_TABLE
+                    set mtime = datetime('now', 'localtime'),
+                        state = "STALL"
+                    where id = ?;
+              EOQ
+
+              db.commit
+
+            rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def update_timestamp(id, ts)
+          mutex.synchronize {
+            begin
+              Log.debug("sqlite3") {"update_timestamp(#{id[0,8]}, #{ts})"}
+
+              db.transaction
+
+              db.execute(<<~EOQ, ts, id)
+                update SENSOR_TABLE set mtime = datetime(?) where id = ?;
+              EOQ
+
+              db.commit
+
+            rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
+              db.rollback
+              raise(e)
+            end
+          }
+        end
+
+        def regist_unknown(addr, ts)
+          mutex.synchronize {
+            begin
+              Log.debug("sqlite3") {"regist_unknown(#{addr}, #{ts})"}
+
+              db.transaction
+
+              db.execute(<<~EOQ, addr, SecureRandom.uuid)
+                insert into SENSOR_TABLE
+                    values (?,
+                            ?,
+                            datetime(?),
+                            datetime(?),
+                            NULL,
+                            "UNKNOWN",
+                            "UNKNOWN",
+                            NULL);
+              EOQ
+
+              db.commit
+
+            rescue => e
+              Log.error("sqlite3") {"error occurred \"#{e.message}\""}
               db.rollback
               raise(e)
             end

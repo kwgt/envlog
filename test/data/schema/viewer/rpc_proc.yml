@@ -1,0 +1,84 @@
+<%= YAML::include("common-definition.yml") %>
+
+RESULT(get_sensor_list):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'get_sensor_list()'
+  type: array
+  items:
+    - type: object
+      required:
+        - id
+        - ctime
+        - mtime
+        - descr
+        - state
+        - temp
+        - hum
+        - a/p
+        - rssi
+        - vbat
+        - vbus
+      properties:
+        id:
+          <<: *UUID4
+        ctime:
+          <<: *DATE_TIME
+        mtime:
+          <<: *DATE_TIME
+        descr:
+          type: string
+        state:
+          oneOf:
+            - <<: *SENSOR_STATE
+            - type: 'null'
+        temp:
+          type: number
+        hum:
+          type: number
+        a/p:
+          type: integer
+        rssi:
+          type: integer
+        vbat:
+          type: number
+        vbus:
+          type: number
+      addtionalProperties: false
+
+RESULT(poll_sensor):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'poll_sensor()'
+  type: object
+  patternProperties:
+    *UUID4_PATTERN:
+      <<: *DATE_TIME
+  addtionalProperties: false
+
+RESULT(get_latest_sensor_value):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'get_latest_sensor_value()'
+  type: object
+  required:
+    - time
+    - state
+  properties:
+    time:
+      <<: *DATE_TIME
+    temp:
+      type: number
+    hum:
+      type: number
+    a/p:
+      type: integer
+    rssi:
+      type: integer
+    vbat:
+      type: number
+    vbus:
+      type: number
+    state:
+      <<: *SENSOR_STATE
+  addtionalProperties: false

@@ -1,0 +1,11 @@
+<%= YAML::include("common-definition.yml") %>
+
+RESULT(poll_sensor):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'poll_sensor()'
+  type: object
+  patternProperties:
+    *UUID4_PATTERN:
+      <<: *DATE_TIME
+  additionalProperties: false

@@ -18,6 +18,10 @@ if (!msgpack || !msgpack.rpc) {
       return this.remoteCall('hello');
     }
 
+    addNotifyRequest(...args) {
+      return this.remoteCall('add_notify_request', ...args);
+    }
+
     getSensorList() {
       return this.remoteCall('get_sensor_list');
     }
@@ -28,6 +32,10 @@ if (!msgpack || !msgpack.rpc) {
 
     getTimeSeriesData(id, time, span) {
       return this.remoteCall('get_time_series_data', id, time, span);
+    }
+
+    pollSensor() {
+      return this.remoteCall('poll_sensor');
     }
   }
 })();

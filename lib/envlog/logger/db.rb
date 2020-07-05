@@ -7,15 +7,29 @@
 #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
 #
 
-#
-# config.ymlのスキーマ定義によりどちらかしか設定できない
-#
+require "#{LIB_DIR + "db"}"
 
-if CONFIG["database"].include?("sqlite3")
-  require_relative "db/sqlite3"
+module EnvLog
+  module Logger
+    module DBA
+      class NotRegisterd < StandardError; end
+      class NotUpdated < StandardError; end
+    end
+  end
 end
 
-if CONFIG["database"].include?("mariadb")
+#
+# config.ymlのスキーマ定義によりどちらかしか設定できないことが前提
+#
+
+case
+when EnvLog::Config.has?(:database, :sqlite3)
+  require_relative "db/sqlite3"
+
+when EnvLog::Config.has?(:database, :mysql)
   require_relative "db/mysql2"
+
+else
+  raise("really?")
 end
 

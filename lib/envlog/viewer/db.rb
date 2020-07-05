@@ -8,14 +8,16 @@
 #
 
 #
-# config.ymlのスキーマ定義によりどちらかしか設定できない
+# config.ymlのスキーマ定義によりどちらかしか設定できないことが前提
 #
 
-if CONFIG["database"].include?("sqlite3")
+case
+when EnvLog::Config.has?(:database, :sqlite3)
   require_relative "db/sqlite3"
-end
 
-if CONFIG["database"].include?("mariadb")
+when EnvLog::Config.has?(:database, :mysql)
   require_relative "db/mysql2"
-end
 
+else
+  raise("really?")
+end

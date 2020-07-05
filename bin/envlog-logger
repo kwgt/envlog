@@ -37,12 +37,24 @@ require "#{LIB_DIR}/log"
 OptionParser.new { |opt|
   opt.version = EnvLog::VERSION
 
-  opt.on("-c FILE", "--config-file=FILE") { |file|
+  opt.on("-c FILE", "--config-file=FILE", String) { |file|
     $config_file = file
   }
 
   opt.on("-s", "--dump-config-template") {
     $dump_config = true
+  }
+
+  opt.on("-l", "--list-device") {
+    $list_device = true
+  }
+
+  opt.on("-a", "--add-device=ADDR,POWER-SOURCE,DESCR", Array) { |args|
+    $add_device  = args
+  }
+
+  opt.on("-r", "--remove-device=ADDR", String) { |val|
+    $remove_device = val
   }
 
   opt.parse!(ARGV)
@@ -64,18 +76,18 @@ end
 #
 # スキーマの読み込み
 #
-SCHEMA  = EnvLog::Schema.read(DATA_DIR + "schema.yml") 
+EnvLog::Schema.read(DATA_DIR + "schema.yml") 
 
 #
 # コンフィギュレーションの読み込み
 # ※エラーが検出された場合は読み込みメソッド内でプロセス終了
 #
-CONFIG  = EnvLog::Config.read($config_file)
+EnvLog::Config.read($config_file)
 
 #
-# ロガーオブジェクトの生成
+# ロガーの設定
 #
-$logger = EnvLog::Log.open()
+EnvLog::Log.setup()
 
 #
 # アプリ固有ライブラリの読み込み
@@ -87,4 +99,25 @@ require "#{APP_LIB_DIR + "input"}"
 #
 # アプリを起動
 #
-EnvLog::Logger.start
+
+begin
+  case
+  when $list_device
+    EnvLog::Logger.list_device
+
+  when $add_device
+    EnvLog::Logger.add_device(*$add_device)
+
+  when $remove_device
+    EnvLog::Logger.remove_device($remove_device)
+
+  else
+    EnvLog::Logger.start
+  end
+
+  exit 0
+
+rescue => e
+  STDERR.print("#{e.message}.\n")
+  exit 1
+end
