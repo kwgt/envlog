@@ -113,17 +113,22 @@
   function setSensorTable(list) {
     list.forEach((info) => {
       let foo;
+      let $a;
 
       foo = stringifyValues(info);
+
+      if (info["state"] == "UNKNOWN" || info["state"] == "READY") {
+        $a = $('<a>').addClass("disabled");
+      } else {
+        $a = $('<a>').attr('href', `sensor/${info["id"]}`)
+      }
 
       $('table#sensor-table > tbody')
         .append($('<tr>')
           .attr("data-sensor-id", info["id"])
           .append($('<td>')
             .addClass('sensor-num')
-            .append($('<a>')
-              .attr('href', `sensor/${info["id"]}`)
-            )
+            .append($a)
           )
           .append($('<td>')
             .addClass('last-update')
