@@ -9,7 +9,7 @@ body {
 
 div#result {
   div.label {
-    font-size: 5vw;
+    font-size: 5vmin;
     font-weight: 700;
     width: 20%;
   }
@@ -20,7 +20,7 @@ div#result {
     span.number {
       display: inline-block;
       width: 10rem;
-      font-size: 5vw;
+      font-size: 5vmin;
       font-family: "Roboto mono";
     }
 
