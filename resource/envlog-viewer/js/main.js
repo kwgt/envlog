@@ -247,6 +247,9 @@
       .on('update_sensor', (id) => {
         updateSensorRow(id);
       })
+      .on('remove_sensor', (id) => {
+        removeSensorRow(id);
+      })
       .on('session_closed', () => {
         Utils.showAbortShield("session closed");
       });
@@ -256,9 +259,20 @@
         return session.getSensorList()
       })
       .then((list) => {
+        let args;
+
         setSensorTable(list);
 
-        return session.addNotifyRequest("update_sensor", "add_sensor");
+        args = [
+          "update_sensor",
+          "add_sensor",
+          "remove_sensor"
+        ];
+
+        return session.addNotifyRequest(...args);
+      })
+      .then(() => {
+        $('body').show();
       })
       .fail((error) => {
         Utils.showAbortShield(error);

@@ -49,6 +49,12 @@ module EnvLog
             sensor_tbl[id] = mtime
           end
         }
+
+        (sensor_tbl.keys - res.keys).each { |id|
+          Log.debug("main") {"sensor #{id} removed"}
+          WebSocket.broadcast(:remove_sensor, id)
+          sensor_tbl.delete(id)
+        }
       end
     end
   end
