@@ -72,4 +72,27 @@ class TestRpcProcedure < Test::Unit::TestCase
     res = @port.call(:get_latest_sensor_value, res.dig(0, "id"))
     assert_true(check("RESULT(get_latest_sensor_value)", res))
   end
+
+  #
+  # get_sensor_info()
+  #
+  test "call get_sensor_info()" do
+    res = @port.call(:get_sensor_list)
+    ids = res.map {|info| info["id"]}
+
+    #
+    # when normal value
+    #
+    ids.each { |id|
+      info = assert_nothing_raised {@port.call(:get_sensor_info, id)}
+      assert_true(check("RESULT(get_sensor_info)", info))
+    }
+
+    #
+    # when error value (not exist)
+    #
+    exp = assert_raise {@port.call(:get_sensor_info, "00000")}
+    assert_kind_of(RpcClient::ErrorReturn, exp)
+    assert_equal("device 00000 is not found", exp.data)
+  end
 end

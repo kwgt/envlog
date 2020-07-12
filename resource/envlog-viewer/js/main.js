@@ -75,6 +75,107 @@
     return ret;
   }
 
+  function addSensorRow(info) {
+    let foo;
+
+    foo = stringifyValues(info);
+
+    $('table#sensor-table > tbody')
+      .append($('<tr>')
+        .attr("data-sensor-id", info["id"])
+        .append($('<td>')
+          .addClass('sensor-num')
+          .append($('<a>')
+            .attr('href', `sensor/${info["id"]}`)
+          )
+        )
+        .append($('<td>')
+          .addClass('last-update')
+          .text(info["mtime"])
+        )
+        .append($('<td>')
+          .addClass('temperature')
+          .text(foo["temp"])
+        )
+        .append($('<td>')
+          .addClass('humidity')
+          .text(foo["hum"])
+        )
+        .append($('<td>')
+          .addClass('air-pressure')
+          .text(foo["a/p"])
+        )
+        .append($('<td>')
+          .addClass('vbat')
+          .text(foo["vbat"])
+        )
+        .append($('<td>')
+          .addClass('vbus')
+          .text(foo["vbus"])
+        )
+        .append($('<td>')
+          .addClass('state')
+          .addClass(lookupStateClass(info["state"]))
+        )
+        .append($('<td>')
+          .addClass('description')
+          .text(info["descr"])
+        )
+        .append($('<td>')
+          .addClass('control')
+          .append($('<button>')
+            .addClass("btn btn-dark btn-sm")
+            .html(icon("info"))
+            .on('click', () => {
+              DeviceInfo.showModal(info["id"])
+                .then((operation) => {
+                  switch (operation) {
+                  case "UPDATE":
+                    updateSensorRow(info["id"]);
+                    break;
+
+                  case "REMOVE":
+                    removeSensorRow(info["id"]);
+                    break;
+
+                  default:
+                    throw(`really? (${operation})`);
+                    break;
+                  }
+                })
+            })
+          )
+        )
+      );
+  }
+
+  function appendSensorRow(id) {
+    var args;
+    var info;
+
+    args = [session.getSensorInfo(id),
+            session.getLatestSensorValue(id)];
+
+    $.when(...args)
+      .then((si, lv) => {
+        info = {
+          id:    id,
+          ctime: si["ctime"],
+          mtime: lv["time"],
+          descr: si["descr"],
+          state: si["state"],
+          temp:  lv["temp"],
+          hum:   lv["hum"],
+          "a/p": lv["a/p"],
+          rssi:  lv["rssi"],
+          vbat:  lv["vbat"],
+          vbus:  lv["vbus"],
+        }
+
+        addSensorRow(info);
+      });
+  }
+
   function updateSensorRow(id) {
     session.getLatestSensorValue(id)
       .then((info) => {
@@ -110,54 +211,23 @@
       });
   }
 
+  function removeSensorRow(id) {
+    $(`table#sensor-table > tbody > tr[data-sensor-id=${id}]`).remove();
+  }
+
+  function icon(name) {
+    var ret;
+
+    ret = '<svg class="bi">' +
+          `<use xlink:href="/icons/bootstrap-icons.svg#${name}"/>` +
+          '</svg>';
+
+    return ret;
+  }
+
   function setSensorTable(list) {
     list.forEach((info) => {
-      let foo;
-
-      foo = stringifyValues(info);
-
-      $('table#sensor-table > tbody')
-        .append($('<tr>')
-          .attr("data-sensor-id", info["id"])
-          .append($('<td>')
-            .addClass('sensor-num')
-            .append($('<a>')
-              .attr('href', `sensor/${info["id"]}`)
-            )
-          )
-          .append($('<td>')
-            .addClass('last-update')
-            .text(info["mtime"])
-          )
-          .append($('<td>')
-            .addClass('temperature')
-            .text(foo["temp"])
-          )
-          .append($('<td>')
-            .addClass('humidity')
-            .text(foo["hum"])
-          )
-          .append($('<td>')
-            .addClass('air-pressure')
-            .text(foo["a/p"])
-          )
-          .append($('<td>')
-            .addClass('vbat')
-            .text(foo["vbat"])
-          )
-          .append($('<td>')
-            .addClass('vbus')
-            .text(foo["vbus"])
-          )
-          .append($('<td>')
-            .addClass('state')
-            .addClass(lookupStateClass(info["state"]))
-          )
-          .append($('<td>')
-            .addClass('description')
-            .text(info["descr"])
-          )
-        );
+      addSensorRow(info)
     });
   }
 
@@ -171,6 +241,9 @@
 
   function startSession() {
     session
+      .on('add_sensor', (id) => {
+        appendSensorRow(id);
+      })
       .on('update_sensor', (id) => {
         updateSensorRow(id);
       })
@@ -185,7 +258,7 @@
       .then((list) => {
         setSensorTable(list);
 
-        return session.addNotifyRequest("update_sensor");
+        return session.addNotifyRequest("update_sensor", "add_sensor");
       })
       .fail((error) => {
         Utils.showAbortShield(error);
@@ -194,6 +267,10 @@
 
   function initialize() {
     session = new Session(WEBSOCK_URL);
+
+    LoadingShield.initialize();
+    ErrorModal.initialize();
+    DeviceInfo.initialize(session);
 
     startSession();
   }
@@ -207,6 +284,7 @@
       "/css/pretty-checkbox.min.css",
       "/css/roboto.css",
       "/css/roboto-mono.css",
+      "/css/bootstrap-icons.css",
 
       "/js/popper.min.js",
       "/js/bootstrap.min.js",
@@ -214,10 +292,14 @@
       "/js/jquery.nicescroll.min.js",
       "/js/ion.rangeSlider.min.js",
       "/js/sprintf.min.js",
+      "/js/moment.min.js",
 
       "/css/main/style.scss",
       "/js/msgpack-rpc.js",
       "/js/session.js",
+      "/js/loading_shield.js",
+      "/js/misc/dialog/device_info.js",
+      "/js/error_modal.js",
     ];
 
     Utils.require(list)

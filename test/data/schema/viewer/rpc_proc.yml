@@ -82,3 +82,26 @@ RESULT(get_latest_sensor_value):
     state:
       <<: *SENSOR_STATE
   addtionalProperties: false
+
+RESULT(get_sensor_info):
+  $schema: http://json-schema.org/draft-07/schema#
+  description: >-
+    data schema for result of RPC procedure 'get_sensor_info()'
+  type: object
+  required:
+    - addr
+    - ctime
+    - descr
+    - psrc
+    - state
+  properties:
+    addr:
+      <<: *DEVICE_ADDR
+    ctime:
+      <<: *DATE_TIME
+    descr:
+      type: string
+    psrc:
+      <<: *POWER_SOURCE
+    state:
+      <<: *SENSOR_STATE

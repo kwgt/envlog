@@ -2,15 +2,15 @@
 # データベースへのアクセス設定
 #
 database:
-  #sqlite3:
-  #  path:     ~/lib/envlog.db
+  sqlite3:
+    path:     data/envlog-dev.db
 
-  mysql:
-    host:     192.168.0.39
-    username: envlog
-    password: 1EL6-CWNO-Q0LA
-    database: envlog.db
-    encoding: utf8
+  #mysql:
+  #  host:     db3.local
+  #  username: envlog
+  #  password: XXXX-XXXX-XXXX
+  #  database: envlog.db
+  #  encoding: utf8
 
 #
 # loggerのデータの入力ソース設定

@@ -1,0 +1,28 @@
+@charset "UTF-8";
+
+div#device-info-dialog {
+  label.col-form-label {
+    font-size: 80%;
+    padding-bottom: 1px;
+  }
+
+  div.form-group {
+    margin-bottom: unset;
+  }
+
+  input.form-control-plaintext {
+    padding: .375rem .75rem;
+  }
+
+  input#device-address {
+    font-family: "Roboto mono";
+  }
+
+  input#device-ctime {
+    font-family: none;
+  }
+
+  input#device-state {
+    font-family: none;
+  }
+}
