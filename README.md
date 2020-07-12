@@ -104,5 +104,9 @@ T.B.D
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at https://github.com/kwgt/envlog
 
+## etc
+### About image data
+it is use the modified version of the 『特撮映画のイラスト』(https://www.irasutoya.com/2018/12/blog-post_90.html) distributed at いらすとや (https://www.irasutoya.com).
+
 ## License
 The gem is available as open source under the terms of the [MIT License](https://opensource.org/licenses/MIT).
