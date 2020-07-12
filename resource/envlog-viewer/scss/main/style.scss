@@ -1,6 +1,10 @@
 @charset "UTF-8";
 @import "../../../common/scss/abort_shield.scss";
 @import "../../../common/scss/bootstrap-ext.scss";
+@import "../../../common/scss/loading_shield.scss";
+@import "../../../common/scss/error_modal.scss";
+@import "../misc/dialog/device_info.scss";
+@import "../common.scss";
 
 body {
   position: relative;
@@ -42,6 +46,10 @@ table#sensor-table {
   }
 
   .description {
+  }
+
+  .control {
+    width: 1rem;
   }
 }
 
@@ -166,5 +174,9 @@ table#sensor-table > tbody {
 
   td.description {
     font-family: Roboto;
+  }
+
+  td.control {
+    text-align: center;
   }
 }

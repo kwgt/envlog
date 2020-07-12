@@ -3,7 +3,7 @@
 #
 database:
   sqlite3:
-    path:     ~/lib/envlog.db
+    path:     data/envlog.db
 
   #mysql:
   #  host:     db3.local
@@ -47,7 +47,7 @@ webserver:
 # ログ出力設定
 #
 log:
-  file:        log.txt
+  file:        log/log.txt
   shift_age:   weekly
   shift_size:  100_000
   level:       INFO

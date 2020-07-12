@@ -88,6 +88,8 @@ module EnvLog
           select state, mtime from SENSOR_TABLE where id = "#{id}";
         EOQ
 
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
         if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "PAUSE"
           ret  = {
             :time  => row[1].to_s,
@@ -152,6 +154,25 @@ module EnvLog
         EOQ
 
         return rows.inject({}) {|m, n| m[n[0]] = n[1].to_s; m}
+      end
+
+      def get_sensor_info(id)
+        row = @db.get_first_row(<<~EOQ, :as => :array)
+          select addr, ctime, descr, `pow-source`, state
+              from SENSOR_TABLE where id = "#{id}";
+        EOQ
+
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
+        ret = {
+          :addr  => row[0],
+          :ctime => row[1].to_s,
+          :descr => row[2],
+          :psrc  => row[3],
+          :state => row[4],
+        }
+
+        return ret
       end
     end
   end

@@ -47,7 +47,7 @@ webserver:
 # ログ出力設定
 #
 log:
-  file:        log.txt
+  file:        log/log.txt
   shift_age:   weekly
   shift_size:  100_000
   level:       INFO

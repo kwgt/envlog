@@ -353,7 +353,7 @@ module EnvLog
             df.resolve(db.get_sensor_list())
 
           rescue => e
-            df.reject(e)
+            df.reject(e.message)
 
           ensure
             db&.close
@@ -375,7 +375,7 @@ module EnvLog
             df.resolve(db.get_latest_value(id))
 
           rescue => e
-            df.reject(e)
+            df.reject(e.message)
 
           ensure
             db&.close
@@ -405,7 +405,7 @@ module EnvLog
             df.resolve(db.get_time_series_data(id, tm, span))
 
           rescue => e
-            df.reject(e)
+            df.reject(e.message)
 
           ensure
             db&.close
@@ -413,6 +413,151 @@ module EnvLog
         }
       end
       remote_async :get_time_series_data
+
+      #
+      # 指定されたセンサーの情報を取得する
+      #
+      # @param [String] id  センサーのID
+      #
+      # @return [Hash] センサーの情報を格納したHash
+      #
+      def get_sensor_info(df, id)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_sensor_info(id))
+
+          rescue => e
+            df.reject(e.message)
+
+          ensure
+            db&.close
+          end
+        }
+      end
+      remote_async :get_sensor_info
+
+      #
+      # 指定されたセンサーデバイスの概要情報を設定する
+      #
+      # @param [String] addr  対象のデバイスアドレス
+      # @param [String] descr 概要情報
+      #
+      # @return [:OK] 固定値
+      #
+      def set_description(df, addr, descr)
+        EM.defer {
+          begin
+            EnvLog::Database.set_description(addr, descr)
+            df.resolve(:OK)
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :set_description
+
+      #
+      # 指定されたセンサーデバイスのパワーソース設定を変更する
+      #
+      # @param [String] addr  対象のデバイスアドレス
+      # @param [String] src 設定するパワーソース名
+      #
+      # @return [:OK] 固定値
+      #
+      def set_power_source(df, addr, src)
+        EM.defer {
+          begin
+            EnvLog::Database.set_power_source(addr, src)
+            df.resolve(:OK)
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :set_power_source
+
+      #
+      # 指定されたセンサーデバイスのアクティベート(UNKNOWN → READY)
+      #
+      # @param [String] addr  対象のデバイスアドレス
+      #
+      # @return [:OK] 固定値
+      #
+      def activate(df, addr)
+        EM.defer {
+          begin
+            EnvLog::Database.activate(addr)
+            df.resolve(:OK)
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :activate
+
+      #
+      # 指定されたセンサーデバイスのポーズ(NORMAL/DEAD-BATTERY → PAUSE)
+      #
+      # @param [String] addr  対象のデバイスアドレス
+      #
+      # @return [:OK] 固定値
+      #
+      def pause(df, addr)
+        EM.defer {
+          begin
+            EnvLog::Database.pause(addr)
+            df.resolve(:OK)
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :pause
+
+      #
+      # 指定されたセンサーデバイスのレジューム(PAUSE → NORMAL)
+      #
+      # @param [String] addr  対象のデバイスアドレス
+      #
+      # @return [:OK] 固定値
+      #
+      def resume(df, addr)
+        EM.defer {
+          begin
+            EnvLog::Database.resume(addr)
+            df.resolve(:OK)
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :resume
+
+      #
+      # 指定されたセンサーデバイスの削除
+      #
+      # @param [String] addr  対象のデバイスアドレス
+      #
+      # @return [:OK] 固定値
+      #
+      def remove_device(df, addr)
+        EM.defer {
+          begin
+            EnvLog::Database.remove_device(addr)
+            df.resolve(:OK)
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :remove_device
     end
   end
 end
