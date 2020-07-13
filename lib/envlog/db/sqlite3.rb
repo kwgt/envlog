@@ -9,7 +9,6 @@
 
 require 'sqlite3'
 require 'securerandom'
-require "#{LIB_DIR + "db"}"
 
 module EnvLog
   module Database
