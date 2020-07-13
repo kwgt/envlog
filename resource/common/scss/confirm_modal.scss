@@ -1,0 +1,13 @@
+@charset "UTF-8";
+
+div#confirm-modal {
+  z-index: 2000;
+
+  div.modal-content {
+    div.modal-footer {
+      button > span {
+        vertical-align: middle;
+      }
+    }
+  }
+}
