@@ -180,3 +180,18 @@ table#sensor-table > tbody {
     text-align: center;
   }
 }
+
+/*
+ * override confirm dialog style
+ */
+div#confirm-modal {
+  p#confirm-text {
+    span#remove-confirm-text {
+      span.sensor-address {
+        font-family: "Roboto mono";
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+      }
+    }
+  }
+}

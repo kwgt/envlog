@@ -13,6 +13,7 @@
   const onClickResume       = Symbol('onClickResume');
   const callRemote          = Symbol('callRemote');
   const reload              = Symbol('reload');
+  const createConfirmText   = Symbol('createConfirmText');
 
   DeviceInfo = class {
     static initialize(session) {
@@ -101,14 +102,38 @@
         });
     }
 
+    static [createConfirmText]() {
+      var $ret;
+
+      $ret = $('<span>')
+        .attr("id", "remove-confirm-text")
+        .append($('<span>')
+          .text('When you click "YES" this sensor')
+        )
+        .append($('<span>')
+          .addClass('sensor-address')
+          .text(this.address)
+        )
+        .append($('<span>')
+          .text(`(${this.descr}) `)
+        )
+        .append($('<span>')
+          .append('will be removed.')
+        )
+        .append($('<br>'))
+        .append($('<span>')
+          .append('Are you sure?')
+        )
+
+      return $ret;
+    }
+
     static [onClickRemove]($e) {
       var param;
 
       param = {
         title: "Do you want to remove?",
-        text:  'When you click "YES" this sensor this device ' +
-               'will be removed.<br>' +
-               'Are you sure?',
+        text:  this[createConfirmText]()
       };
 
       this.$modal.hide();
