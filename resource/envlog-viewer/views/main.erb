@@ -16,7 +16,7 @@
     <script type="text/javascript" src="/js/main.js"></script>
   </head>
 
-  <body class="main-screen">
+  <body class="main-screen" style="display:none;">
     <div>
       <table id="sensor-table" class="table">
         <thead class="thead-dark">
@@ -30,6 +30,7 @@
             <th class="vbus" scope="col">VBUS</th>
             <th class="state" scope="col">STATE</th>
             <th class="description" scope="col">DESCRIPTION</th>
+            <th class="control" scope="col"></th>
           </tr>
         </thead>
         <tbody>
@@ -38,6 +39,10 @@
     </div>
 
     <%= render :erb, :"../../common/views/abort_shield" %>
+    <%= render :erb, :"../../common/views/loading_shield" %>
+    <%= render :erb, :"../../common/views/error_modal" %>
+    <%= render :erb, :"../../common/views/confirm_modal" %>
+    <%= render :erb, :"misc/dialog/device_info" %>
   </body>
 </html>
 

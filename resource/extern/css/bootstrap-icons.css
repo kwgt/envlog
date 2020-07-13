@@ -1,0 +1,125 @@
+.bi {
+  vertical-align: baseline;
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+}
+
+.btn-sm .bi {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.btn-primary .bi {
+  fill: var(--white);
+}
+
+.btn-secondary .bi {
+  fill: var(--white);
+}
+
+.btn-success .bi {
+  fill: var(--white);
+}
+
+.btn-danger .bi {
+  fill: var(--white);
+}
+
+.btn-warning .bi {
+  fill: var(--black);
+}
+
+.btn-light .bi {
+  fill: var(--black);
+}
+
+.btn-dark .bi {
+  fill: var(--white);
+}
+
+.text-blue .bi {
+  fill: var(--blue);
+}
+
+.text-indigo .bi {
+  fill: var(--indigo);
+}
+
+.text-purple .bi {
+  fill: var(--purple);
+}
+
+.text-red .bi {
+  fill: var(--red);
+}
+
+.text-orange .bi {
+  fill: var(--orange);
+}
+
+.text-yellow .bi {
+  fill: var(--yellow);
+}
+
+.text-green .bi {
+  fill: var(--green);
+}
+
+.text-teal .bi {
+  fill: var(--teal);
+}
+
+.text-cyan .bi {
+  fill: var(--cyan);
+}
+
+.text-white .bi {
+  fill: var(--white);
+}
+
+.text-gray .bi {
+  fill: var(--gray);
+}
+
+.text-gray-dark .bi {
+  fill: var(--gray-dark);
+}
+
+.text-primary .bi,
+.alert-primary .bi {
+  fill: var(--primary);
+}
+
+.text-secondary .bi,
+.alert-secondary .bi{
+  fill: var(--secondary);
+}
+
+.text-success .bi,
+.alert-success .bi {
+  fill: var(--success);
+}
+
+.text-danger .bi,
+.alert-danger .bi {
+  fill: var(--danger);
+}
+
+.text-warning .bi {
+  fill: var(--warning);
+}
+
+.alert-warning .bi {
+  fill: var(--gray);
+}
+
+.text-light .bi,
+.alert-light .bi {
+  fill: var(--light);
+}
+
+.text-dark .bi,
+.alert-dark .bi {
+  fill: var(--dark);
+}

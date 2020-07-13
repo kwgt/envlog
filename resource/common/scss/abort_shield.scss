@@ -3,7 +3,6 @@
 div#abort-shield {
   display: none;
   position: fixed;
-	pointer-events: none;
   top: 0;
   left: 0;
   right: 0;
@@ -15,10 +14,14 @@ div#abort-shield {
   background-color: rgba(0,0,0,0.6);
   text-align: center;
   z-index: 10000;
+  user-select: none;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
 
   div.abort-content {
     position: absolute;
     height: fit-content;
+    ponter-event: none;
     margin: auto;
     top: 0;
     left: 0;

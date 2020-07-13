@@ -11,6 +11,20 @@ module EnvLog
   module Database
     class DeviceBusy < StandardError; end
     class DeviceNotFound < StandardError; end
+
+    class << self
+      def valid_power_source?(src)
+        return %w[STABLE BATTERY NONE].include?(src.upcase)
+      end
+
+      def recording_state?(st)
+        return %w[NORMAL DEAD-BATTERY].include?(st.upcase)
+      end
+
+      def pause_state?(st)
+        return st.upcase == "PAUSE"
+      end
+    end
   end
 end
 

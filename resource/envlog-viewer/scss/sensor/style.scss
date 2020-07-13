@@ -1,5 +1,6 @@
 @charset "UTF-8";
 @import "../../../common/scss/abort_shield.scss";
+@import "../../../common/scss/bootstrap-ext.scss";
 
 body {
   position: relative;
@@ -9,7 +10,7 @@ body {
 
 div#result {
   div.label {
-    font-size: 5vw;
+    font-size: 5vmin;
     font-weight: 700;
     width: 20%;
   }
@@ -20,12 +21,12 @@ div#result {
     span.number {
       display: inline-block;
       width: 10rem;
-      font-size: 5vw;
+      font-size: 5vmin;
       font-family: "Roboto mono";
     }
 
     span.unit {
-      font-size: 2vw;
+      font-size: 2vmin;
     }
   }
 }

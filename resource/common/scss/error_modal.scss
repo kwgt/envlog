@@ -1,0 +1,17 @@
+@charset "UTF-8";
+
+div#error-modal {
+  z-index: 2000;
+  div.modal-content {
+    div.modal-body {
+      textarea {
+        font-family: "Roboto mono";
+        width: 100%;
+        resize: none;
+        border: none;
+        border-radius: 3px;
+        background-color: rgba(128, 128, 128, 0.1);
+      }
+    }
+  }
+}
