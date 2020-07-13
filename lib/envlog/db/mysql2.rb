@@ -8,6 +8,7 @@
 #
 
 require 'mysql2'
+require 'securerandom'
 require "#{LIB_DIR + "mysql2"}"
 
 module EnvLog
@@ -20,6 +21,28 @@ module EnvLog
       def open_database
         db = Mysql2::Client.new(DB_CRED) 
         db.query_options.merge!(:as => :array)
+
+        class << db
+          def transaction
+            self.query("start transaction;")
+          end
+
+          def commit
+            self.query("commit;")
+          end
+
+          def rollback
+            self.query("rollback;")
+          end
+
+          def check_exist(addr)
+            n = self.get_first_value(<<~EOQ)
+              select count(*) from SENSOR_TABLE where addr = "#{addr}";
+            EOQ
+
+            raise(DeviceNotFound.new("device not found")) if n.zero?
+          end
+        end
 
         yield(db)
 
@@ -35,6 +58,70 @@ module EnvLog
           EOQ
 
           return n.zero?.!
+        }
+      end
+
+      # only use for test
+      def clear_sensor_table
+        open_database { |db|
+          begin
+            db.transaction
+
+            db.query(<<~EOQ)
+              delete from SENSOR_TABLE;
+            EOQ
+
+            db.commit
+
+          rescue => e
+            db.rollback
+            raise(e)
+          end
+        }
+      end
+
+      # only use for test
+      def get_device_info(addr)
+        open_database { |db|
+          row = db.get_first_row(<<~EOQ)
+            select id, addr, state, `pow-source`, descr
+                from SENSOR_TABLE where addr = "#{addr}";
+          EOQ
+
+          ret = {
+            :id    => row[0],
+            :addr  => row[1],
+            :state => row[2],
+            :psrc  => row[3],
+            :descr => row[4],
+          }
+
+          return ret
+        }
+      end
+
+      # only use for test
+      def add_dummy_device(addr, state)
+        open_database { |db|
+          begin
+            db.transaction
+            db.query(<<~EOQ)
+              insert into SENSOR_TABLE
+                  values ("#{addr}",
+                          "#{SecureRandom.uuid}",
+                          NOW(),
+                          NOW(),
+                          NULL,
+                          "UNKNOWN",
+                          "#{state.to_s}",
+                          NULL);
+            EOQ
+            db.commit
+
+          rescue => e
+            db.rollback
+            raise(e)
+          end
         }
       end
 
@@ -60,7 +147,7 @@ module EnvLog
       def add_device(addr, descr, psrc)
         open_database { |db|
           begin
-            db.query("start transaction;")
+            db.transaction
 
             row = db.get_first_row(<<~EOQ, :as => :array)
               select id, state from SENSOR_TABLE where addr = "#{addr}";
@@ -114,11 +201,161 @@ module EnvLog
               end
             end
 
-            db.query("commit");
+            db.commit
 
           rescue => e
             Log.error("mysql2"){"error occurrd (#{e.message})"}
-            db.query("rollback");
+            db.rollback
+            raise(e)
+          end
+        }
+      end
+
+      def set_description(addr, descr)
+        Log.info("mysql2"){"set description #{addr}"}
+
+        open_database { |db|
+          begin
+            db.transaction
+
+            db.check_exist(addr)
+
+            db.query(<<~EOQ)
+              update SENSOR_TABLE set mtime = NOW(), descr = #{descr.to_mysql}
+                  where addr = "#{addr}";
+            EOQ
+
+            db.commit
+
+          rescue => e
+            Log.error("mysql2"){"error occurrd (#{e.message})"}
+            db.rollback
+            raise(e)
+          end
+        }
+      end
+
+      def set_power_source(addr, src)
+        Log.info("mysql2"){"set power source #{addr}"}
+
+        if not valid_power_source?(src)
+          raise(ArgumentError.new("invalid power source"))
+        end
+
+        open_database { |db|
+          begin
+            db.transaction
+
+            db.check_exist(addr)
+
+            db.query(<<~EOQ)
+              update SENSOR_TABLE
+                  set mtime = NOW(), `pow-source` = "#{src.upcase}"
+                  where addr = "#{addr}";
+            EOQ
+
+            db.commit
+
+          rescue => e
+            Log.error("mysql2"){"error occurrd (#{e.message})"}
+            db.rollback
+            raise(e)
+          end
+        }
+      end
+
+      def activate(addr)
+        Log.info("mysql2"){"activate #{addr}"}
+
+        open_database { |db|
+          begin
+            db.transaction
+
+            db.check_exist(addr)
+
+            row = db.get_first_row(<<~EOQ)
+              select `pow-source`, state
+                  from SENSOR_TABLE where addr = "#{addr}";
+            EOQ
+
+            if not valid_power_source?(row[0])
+              raise("power source is not set")
+            end
+
+            if row[1] != "UNKNOWN"
+              raise("state violation")
+            end
+
+            db.query(<<~EOQ)
+              update SENSOR_TABLE
+                  set mtime = NOW(), state = "READY" where addr = "#{addr}";
+            EOQ
+
+            db.commit
+
+          rescue => e
+            Log.error("mysql2"){"error occurrd (#{e.message})"}
+            db.rollback
+            raise(e)
+          end
+        }
+      end
+
+      def pause(addr)
+        Log.info("mysql2"){"pause #{addr}"}
+
+        open_database { |db|
+          begin
+            db.transaction
+
+            db.check_exist(addr)
+
+            st = db.get_first_value(<<~EOQ)
+              select state from SENSOR_TABLE where addr = "#{addr}";
+            EOQ
+
+            raise("state violation") if not recording_state?(st)
+
+            db.query(<<~EOQ)
+              update SENSOR_TABLE
+                  set mtime = NOW(), state = "PAUSE" where addr = "#{addr}";
+            EOQ
+
+            db.commit
+
+          rescue => e
+            Log.error("mysql2"){"error occurrd (#{e.message})"}
+            db.rollback
+            raise(e)
+          end
+        }
+      end
+
+      def resume(addr)
+        Log.info("mysql2"){"resume #{addr}"}
+
+        open_database { |db|
+          begin
+            db.transaction
+
+            db.check_exist(addr)
+
+            st = db.get_first_value(<<~EOQ)
+              select state from SENSOR_TABLE where addr = "#{addr}";
+            EOQ
+
+            raise("state violation") if not pause_state?(st)
+
+            db.query(<<~EOQ)
+              update SENSOR_TABLE
+                  set mtime = NOW(), state = "NORMAL" where addr = "#{addr}";
+            EOQ
+
+            db.commit
+
+          rescue => e
+            Log.error("mysql2"){"error occurrd (#{e.message})"}
+            db.rollback
             raise(e)
           end
         }
@@ -127,17 +364,17 @@ module EnvLog
       def remove_device(addr)
         open_database { |db|
           begin
-            db.query("start transaction;")
+            db.transaction
 
             db.query(<<~EOQ)
               delete from SENSOR_TABLE where addr = "#{addr}";
             EOQ
 
-            db.query("commit;")
+            db.commit
 
           rescue => e
             Log.error("mysql2"){"error occurrd (#{e.message})"}
-            db.query("rollback;")
+            db.rollback
             raise(e)
           end
         }
@@ -150,7 +387,7 @@ module EnvLog
     #
     self.open_database { |db|
       begin
-        db.query("start transaction;")
+        db.transaction
 
         #
         # センサー定義テーブル
@@ -190,10 +427,10 @@ module EnvLog
           );
         EOQ
 
-        db.query("commit;")
+        db.commit
 
       rescue => e
-        db.query("rollback;")
+        db.rollback
         raise(e)
       end
     }

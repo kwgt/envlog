@@ -37,11 +37,23 @@ module EnvLog
         res = DBA.open {|db| db.poll_sensor()}
 
         res.each_pair { |id, mtime|
-          if mtime > sensor_tbl[id]
+          case
+          when (not sensor_tbl.include?(id))
+            Log.debug("main") {"sensor #{id} added"}
+            WebSocket.broadcast(:add_sensor, id)
+            sensor_tbl[id] = mtime
+
+          when mtime > sensor_tbl[id]
             Log.debug("main") {"sensor #{id} updated"}
             WebSocket.broadcast(:update_sensor, id)
             sensor_tbl[id] = mtime
           end
+        }
+
+        (sensor_tbl.keys - res.keys).each { |id|
+          Log.debug("main") {"sensor #{id} removed"}
+          WebSocket.broadcast(:remove_sensor, id)
+          sensor_tbl.delete(id)
         }
       end
     end

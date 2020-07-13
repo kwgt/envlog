@@ -8,7 +8,6 @@
 #
 
 require 'sqlite3'
-require "#{LIB_DIR}/db/sqlite3.rb"
 
 module EnvLog
   module Viewer
@@ -91,6 +90,8 @@ module EnvLog
           select state, mtime from SENSOR_TABLE where id = ?;
         EOQ
 
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
         if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "PAUSE"
           ret = {
             :time  => row[1], 
@@ -154,6 +155,25 @@ module EnvLog
         EOQ
 
         return rows.inject({}) {|m, n| m[n[0]] = n[1]; m}
+      end
+
+      def get_sensor_info(id)
+        row = @db.get_first_row(<<~EOQ, id)
+          select addr, ctime, descr, `pow-source`, state
+              from SENSOR_TABLE where id = ?;
+        EOQ
+
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
+        ret = {
+          :addr  => row[0],
+          :ctime => row[1],
+          :descr => row[2],
+          :psrc  => row[3],
+          :state => row[4],
+        }
+
+        return ret
       end
     end
   end

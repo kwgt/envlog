@@ -60,6 +60,20 @@ module EnvLog
           port   = WebServer.ws_port
           return "#{scheme}://${location.hostname}:#{port}"
         end
+
+        #
+        # 以下erb内から使用する為のヘルパー関数
+        #
+
+        def render_icon(name)
+          ret = <<~EOT
+            <svg class="bi">
+              <use xlink:href="/icons/bootstrap-icons.svg##{name}"/>
+            </svg>
+          EOT
+
+          return ret
+        end
       end
 
       get "/" do
@@ -83,7 +97,7 @@ module EnvLog
         scss name.to_sym, :views => APP_RESOURCE_DIR + "scss"
       end
 
-      get %r{/(css|js|img|fonts)/(.+)} do |type, name|
+      get %r{/(css|js|img|fonts|icons)/(.+)} do |type, name|
         path = find_resource(type, name)
         
         if path

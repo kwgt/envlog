@@ -23,9 +23,9 @@ definition:
     type: string
     pattern: *DATETIME_PATTERN
 
-  - &BT_ADDR:
+  - &MAC_ADDR:
     type: string
-    pattern: *BT_ADDR_PATTERN
+    pattern: *MAC_ADDR_PATTERN
 
   - &DEVICE_ADDR
     oneOf:

@@ -1,5 +1,11 @@
 @charset "UTF-8";
 @import "../../../common/scss/abort_shield.scss";
+@import "../../../common/scss/bootstrap-ext.scss";
+@import "../../../common/scss/loading_shield.scss";
+@import "../../../common/scss/error_modal.scss";
+@import "../../../common/scss/confirm_modal.scss";
+@import "../misc/dialog/device_info.scss";
+@import "../common.scss";
 
 body {
   position: relative;
@@ -41,6 +47,10 @@ table#sensor-table {
   }
 
   .description {
+  }
+
+  .control {
+    width: 1rem;
   }
 }
 
@@ -148,13 +158,13 @@ table#sensor-table > tbody {
   }
 
   td.state.state-dead-battery:after {
-    color: "red";
+    color: red;
     font-weight: bold;
     content: "BT-DEAD";
   }
 
   td.state.state-stall:after {
-    color: "red";
+    color: red;
     font-weight: bold;
     content: "STALL";
   }
@@ -165,5 +175,24 @@ table#sensor-table > tbody {
 
   td.description {
     font-family: Roboto;
+  }
+
+  td.control {
+    text-align: center;
+  }
+}
+
+/*
+ * override confirm dialog style
+ */
+div#confirm-modal {
+  p#confirm-text {
+    span#remove-confirm-text {
+      span.sensor-address {
+        font-family: "Roboto mono";
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+      }
+    }
   }
 }

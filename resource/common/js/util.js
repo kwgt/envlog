@@ -136,6 +136,9 @@
       $('body').css('overflow', 'hidden');
 
       $('#abort-shield')
+        .on('click', (e) => {
+          e.stopPropagation();
+        })
         .find('p')
           .html(html)
         .end()

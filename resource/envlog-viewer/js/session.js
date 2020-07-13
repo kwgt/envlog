@@ -37,5 +37,33 @@ if (!msgpack || !msgpack.rpc) {
     pollSensor() {
       return this.remoteCall('poll_sensor');
     }
+
+    getSensorInfo(id) {
+      return this.remoteCall('get_sensor_info', id);
+    }
+
+    setDescription(addr, descr) {
+      return this.remoteCall('set_description', addr, descr);
+    }
+
+    setPowerSource(addr, state) {
+      return this.remoteCall('set_power_source', addr, state);
+    }
+
+    activate(addr) {
+      return this.remoteCall('activate', addr);
+    }
+
+    pause(addr) {
+      return this.remoteCall('pause', addr);
+    }
+
+    resume(addr) {
+      return this.remoteCall('resume', addr);
+    }
+
+    removeDevice(addr) {
+      return this.remoteCall('remove_device', addr);
+    }
   }
 })();

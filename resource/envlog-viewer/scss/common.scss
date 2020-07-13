@@ -1,0 +1,14 @@
+@charset "UTF-8";
+
+div.modal {
+  .modal-header {
+    padding: 0.75rem 1.0rem;
+    color: var(--light);
+    background-color: var(--dark);
+  }
+
+  .modal-footer > button > span {
+    display: inline-block;
+    vertical-align: text-bottom;
+  }
+}

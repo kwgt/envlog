@@ -1,0 +1,12 @@
+@charset "UTF-8";
+
+a.disabled {
+  color: var(--gray);
+  pointer-event: none;
+}
+
+a.disabled:hover {
+  color: var(--gray);
+  cursor: not-allowed;
+  pointer-event: none;
+}
