@@ -89,6 +89,12 @@ EnvLog::Config.read($config_file)
 EnvLog::Log.setup()
 
 #
+# 共通ライブラリの読み込み
+# ※コンフィギュレーションを参照する物
+#
+require "#{LIB_DIR}/db"
+
+#
 # アプリ固有のライブラリの読み込み
 #
 require "#{APP_LIB_DIR + "main"}"
