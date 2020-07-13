@@ -272,6 +272,7 @@
 
     LoadingShield.initialize();
     ErrorModal.initialize();
+    ConfirmModal.initialize();
     DeviceInfo.initialize(session);
 
     startSession();
@@ -295,6 +296,7 @@
       "/js/ion.rangeSlider.min.js",
       "/js/sprintf.min.js",
       "/js/moment.min.js",
+      "/js/lodash.min.js",
 
       "/css/main/style.scss",
       "/js/msgpack-rpc.js",
@@ -302,6 +304,7 @@
       "/js/loading_shield.js",
       "/js/misc/dialog/device_info.js",
       "/js/error_modal.js",
+      "/js/confirm_modal.js",
     ];
 
     Utils.require(list)

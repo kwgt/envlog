@@ -102,10 +102,27 @@
     }
 
     static [onClickRemove]($e) {
-      this[callRemote]("removeDevice", this.address)
+      var param;
+
+      param = {
+        title: "Do you want to remove?",
+        text:  'When you click "YES" this sensor this device ' +
+               'will be removed.<br>' +
+               'Are you sure?',
+      };
+
+      this.$modal.hide();
+
+      ConfirmModal.showModal(param)
+        .then(() => {
+          return this[callRemote]("removeDevice", this.address);
+        })
         .then(() => {
           this.operation = "REMOVE";
           this.$modal.modal('hide');
+        })
+        .fail(() => {
+          this.$modal.show();
         });
     }
 
@@ -148,6 +165,7 @@
       this[callRemote]("getSensorInfo", this.sensorId)
         .then((info) => {
           this.address = info["addr"];
+          this.descr   = info["descr"];
 
           this.$modal
             .find('input#device-address')
