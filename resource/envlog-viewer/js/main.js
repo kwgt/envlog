@@ -75,89 +75,119 @@
     return ret;
   }
 
-  function addSensorRow(info) {
+  function setSensorRowValue(info) {
     let foo;
 
     foo = stringifyValues(info);
 
-    $('table#sensor-table > tbody')
-      .append($('<tr>')
-        .attr("data-sensor-id", info["id"])
-        .append($('<td>')
-          .addClass('sensor-num')
-          .append($('<a>')
-            .attr('href', `sensor/${info["id"]}`)
-          )
-        )
-        .append($('<td>')
-          .addClass('last-update')
-          .text(info["mtime"])
-        )
-        .append($('<td>')
-          .addClass('temperature')
-          .text(foo["temp"])
-        )
-        .append($('<td>')
-          .addClass('humidity')
-          .text(foo["hum"])
-        )
-        .append($('<td>')
-          .addClass('air-pressure')
-          .text(foo["a/p"])
-        )
-        .append($('<td>')
-          .addClass('vbat')
-          .text(foo["vbat"])
-        )
-        .append($('<td>')
-          .addClass('vbus')
-          .text(foo["vbus"])
-        )
-        .append($('<td>')
-          .addClass('state')
-          .addClass(lookupStateClass(info["state"]))
-        )
-        .append($('<td>')
-          .addClass('description')
-          .text(info["descr"])
-        )
-        .append($('<td>')
-          .addClass('control')
-          .append($('<button>')
-            .addClass("btn btn-dark btn-sm")
-            .html(icon("info"))
-            .on('click', () => {
-              DeviceInfo.showModal(info["id"])
-                .then((operation) => {
-                  switch (operation) {
-                  case "UPDATE":
-                    updateSensorRow(info["id"]);
-                    break;
+    $(`table#sensor-table > tbody > tr[data-sensor-id=${info["id"]}]`)
+      .find('td.last-update')
+        .text(info["mtime"])
+      .end()
+      .find('td.temperature')
+        .text(foo["temp"])
+      .end()
+      .find('td.humidity')
+        .text(foo["hum"])
+      .end()
+      .find('td.air-pressure')
+        .text(foo["a/p"])
+      .end()
+      .find('td.vbat')
+        .text(foo["vbat"])
+      .end()
+      .find('td.vbus')
+        .text(foo["vbus"])
+      .end()
+      .find('td.state')
+        .removeClass()
+        .addClass('state')
+        .addClass(lookupStateClass(info["state"]))
+      .end()
+      .find('td.description')
+        .text(info["descr"])
+      .end();
+  }
 
-                  case "REMOVE":
-                    removeSensorRow(info["id"]);
-                    break;
+  function createNewRow(id) {
+    var $ret;
 
-                  default:
-                    throw(`really? (${operation})`);
-                    break;
-                  }
-                })
-            })
-          )
+    $ret = $('<tr>')
+      .attr("data-sensor-id", id)
+      .append($('<td>')
+        .addClass('sensor-num')
+        .append($('<a>')
+          .attr('href', `sensor/${id}`)
+        )
+      )
+      .append($('<td>')
+        .addClass('last-update')
+      )
+      .append($('<td>')
+        .addClass('temperature')
+      )
+      .append($('<td>')
+        .addClass('humidity')
+      )
+      .append($('<td>')
+        .addClass('air-pressure')
+      )
+      .append($('<td>')
+        .addClass('vbat')
+      )
+      .append($('<td>')
+        .addClass('vbus')
+      )
+      .append($('<td>')
+        .addClass('state')
+      )
+      .append($('<td>')
+        .addClass('description')
+      )
+      .append($('<td>')
+        .addClass('control')
+        .append($('<button>')
+          .addClass("btn btn-dark btn-sm")
+          .html(icon("info"))
+          .on('click', () => {
+            DeviceInfo.showModal(id)
+              .then((operation) => {
+                switch (operation) {
+                case "UPDATE":
+                  updateSensorRow(id);
+                  break;
+
+                case "REMOVE":
+                  removeSensorRow(id);
+                  break;
+
+                default:
+                  throw(`really? (${operation})`);
+                  break;
+                }
+              })
+          })
         )
       );
+
+    return $ret;
   }
 
   function appendSensorRow(id) {
+    $('table#sensor-table > tbody').append(createNewRow(id));
+    updateSensorRow(id);
+  }
+
+  function updateSensorRow(id) {
     var args;
-    var info;
 
     args = [session.getSensorInfo(id),
             session.getLatestSensorValue(id)];
 
     $.when(...args)
       .then((si, lv) => {
+        let info;
+
         info = {
           id:    id,
           ctime: si["ctime"],
@@ -172,42 +202,7 @@
           vbus:  lv["vbus"],
         }
 
-        addSensorRow(info);
-      });
-  }
-
-  function updateSensorRow(id) {
-    session.getLatestSensorValue(id)
-      .then((info) => {
-        let foo;
-
-        foo = stringifyValues(info);
-
-        $('table#sensor-table > tbody')
-          .find(`tr[data-sensor-id=${id}]`)
-            .find('td.last-update')
-              .text(info["time"])
-            .end()
-            .find('td.temperature')
-              .text(foo["temp"])
-            .end()
-            .find('td.humidity')
-              .text(foo["hum"])
-            .end()
-            .find('td.air-pressure')
-              .text(foo["a/p"])
-            .end()
-            .find('td.vbat')
-              .text(foo["vbat"])
-            .end()
-            .find('td.vbus')
-              .text(foo["vbus"])
-            .end()
-            .find('td.state')
-              .removeClass()
-              .addClass('state')
-              .addClass(lookupStateClass(info["state"]))
-            .end();
+        setSensorRowValue(info);
       });
   }
 
@@ -227,16 +222,9 @@
 
   function setSensorTable(list) {
     list.forEach((info) => {
-      addSensorRow(info)
+      $('table#sensor-table > tbody').append(createNewRow(info["id"]));
+      setSensorRowValue(info)
     });
-  }
-
-  function pollSensor()
-  {
-    session.pollSensor()
-      .then((info) => {
-        console.log(info);
-      });
   }
 
   function startSession() {

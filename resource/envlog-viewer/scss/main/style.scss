@@ -157,13 +157,13 @@ table#sensor-table > tbody {
   }
 
   td.state.state-dead-battery:after {
-    color: "red";
+    color: red;
     font-weight: bold;
     content: "BT-DEAD";
   }
 
   td.state.state-stall:after {
-    color: "red";
+    color: red;
     font-weight: bold;
     content: "STALL";
   }
