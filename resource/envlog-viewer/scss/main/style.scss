@@ -3,6 +3,7 @@
 @import "../../../common/scss/bootstrap-ext.scss";
 @import "../../../common/scss/loading_shield.scss";
 @import "../../../common/scss/error_modal.scss";
+@import "../../../common/scss/confirm_modal.scss";
 @import "../misc/dialog/device_info.scss";
 @import "../common.scss";
 
@@ -178,5 +179,20 @@ table#sensor-table > tbody {
 
   td.control {
     text-align: center;
+  }
+}
+
+/*
+ * override confirm dialog style
+ */
+div#confirm-modal {
+  p#confirm-text {
+    span#remove-confirm-text {
+      span.sensor-address {
+        font-family: "Roboto mono";
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+      }
+    }
   }
 }

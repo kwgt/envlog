@@ -13,6 +13,7 @@
   const onClickResume       = Symbol('onClickResume');
   const callRemote          = Symbol('callRemote');
   const reload              = Symbol('reload');
+  const createConfirmText   = Symbol('createConfirmText');
 
   DeviceInfo = class {
     static initialize(session) {
@@ -101,11 +102,52 @@
         });
     }
 
+    static [createConfirmText]() {
+      var $ret;
+
+      $ret = $('<span>')
+        .attr("id", "remove-confirm-text")
+        .append($('<span>')
+          .text('When you click "YES" this sensor')
+        )
+        .append($('<span>')
+          .addClass('sensor-address')
+          .text(this.address)
+        )
+        .append($('<span>')
+          .text(`(${this.descr}) `)
+        )
+        .append($('<span>')
+          .append('will be removed.')
+        )
+        .append($('<br>'))
+        .append($('<span>')
+          .append('Are you sure?')
+        )
+
+      return $ret;
+    }
+
     static [onClickRemove]($e) {
-      this[callRemote]("removeDevice", this.address)
+      var param;
+
+      param = {
+        title: "Do you want to remove?",
+        text:  this[createConfirmText]()
+      };
+
+      this.$modal.hide();
+
+      ConfirmModal.showModal(param)
+        .then(() => {
+          return this[callRemote]("removeDevice", this.address);
+        })
         .then(() => {
           this.operation = "REMOVE";
           this.$modal.modal('hide');
+        })
+        .fail(() => {
+          this.$modal.show();
         });
     }
 
@@ -148,6 +190,7 @@
       this[callRemote]("getSensorInfo", this.sensorId)
         .then((info) => {
           this.address = info["addr"];
+          this.descr   = info["descr"];
 
           this.$modal
             .find('input#device-address')
