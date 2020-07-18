@@ -96,12 +96,12 @@ module EnvLog
             insert into DATA_TABLE
                 values ("#{id}",
                         "#{ts}",
-                        #{data["temp"]},
-                        #{data["hum"]},
-                        #{data["a/p"]},
-                        #{data["rssi"] || "null"},
-                        #{data["vbat"]},
-                        #{data["vbus"]});
+                        #{data["temp"] || "NULL"},
+                        #{data["hum"]  || "NULL"},
+                        #{data["a/p"]  || "NULL"},
+                        #{data["rssi"] || "NULL"},
+                        #{data["vbat"] || "NULL"},
+                        #{data["vbus"] || "NULL"});
           EOQ
 
           Log.debug("mysql2") {"update #{ts}.#{id[0,8]}"}
