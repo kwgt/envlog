@@ -50,8 +50,8 @@ module EnvLog
       def get_sensor_list
         rows = @db.execute(<<~EOQ)
           select SENSOR_TABLE.id,
-                 datetime(SENSOR_TABLE.ctime),
-                 datetime(SENSOR_TABLE.mtime),
+                 SENSOR_TABLE.ctime,
+                 SENSOR_TABLE.mtime,
                  SENSOR_TABLE.descr,
                  SENSOR_TABLE.state,
                  DATA_TABLE.temp,
@@ -125,28 +125,26 @@ module EnvLog
           rows = @db.execute2(<<~EOQ, id, "now")
             select time, temp, humidity, `air-pres` from DATA_TABLE
                 where sensor = ? and
-                      time >= datetime(?, "localtime", "-#{span} seconds");
+                      time >= datetime(?, "-#{span} seconds");
           EOQ
         else
           rows = @db.execute2(<<~EOQ, id, tm, tm)
-            select time, temp, humidity, `air-pres` from DATA_TABLE
+            select datetime(time, 'localtime'),
+                   temp, humidity, `air-pres`
+                from DATA_TABLE
                 where sensor = ? and
-                    time >= datetime(?, "localtime") and
-                    time <= datetime(?, "localtime", "+#{span} seconds");
+                    time >= ? and time <= datetime(?, "+#{span} seconds");
           EOQ
         end
 
-        ret = {:time => [], :temp => [], :hum => [], :"a/p" => []}
-
         rows.shift
-        rows.each { |row|
-          ret[:time]  << row[0]
-          ret[:temp]  << row[1]
-          ret[:hum]   << row[2]
-          ret[:"a/p"] << row[3]
-        }
 
-        return ret
+        row0 = rows.inject([]) {|m, n| m << n[0]}
+        row1 = (rows.dig(0, 1))? (rows.inject([]) {|m, n| m << n[1]}): nil
+        row2 = (rows.dig(0, 2))? (rows.inject([]) {|m, n| m << n[2]}): nil
+        row3 = (rows.dig(0, 3))? (rows.inject([]) {|m, n| m << n[3]}): nil
+
+        return {:time => row0, :temp => row1, :hum => row2, :"a/p" => row3}
       end
 
       def poll_sensor

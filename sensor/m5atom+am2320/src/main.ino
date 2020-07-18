@@ -3,19 +3,19 @@
  *
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
+#undef USE_BLE
+#define USE_WIFI
 
-#define USE_BLE
-#undef USE_WIFI
-
-#undef ENABLE_LCD
 #define ENABLE_LED
 
-#include <M5StickC.h>
+/* GPIO assign */
+#define SDA_PORT              25
+#define SCL_PORT              21
+
+#include <M5Atom.h>
 #include <Wire.h>
 
-#include <DHT12.h>
-#include <Adafruit_Sensor.h>
-#include <Adafruit_BMP280.h>
+#include <AM232X.h>
 #include <esp_sleep.h>
 #include <esp_system.h>
 
@@ -32,14 +32,17 @@
 #include <esp_wifi.h>
 #endif /* defined(USE_WIFI) */
 
-#include "../include/sensor_common.h"
+#include "../../include/sensor_common.h"
 
-#define F_VALUE          (F_TEMP | F_HUMIDITY | F_AIRPRESS | F_VBAT | F_VBUS)
- 
-#define M5STICK_PIN_LED  10
+#define F_VALUE         (F_TEMP | F_HUMIDITY)
 
-DHT12 dht12;
-Adafruit_BMP280 bme;
+#if defined(USE_BLE) && defined(USE_WIFI)
+#error "specify either USE_BLE or USE_WIFI."
+#elif !defined(USE_BLE) && !defined(USE_WIFI)
+#error "specify either USE_BLE or USE_WIFI."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+AM232X am2320;
 RTC_DATA_ATTR int boot_count = 0;
 RTC_DATA_ATTR uint8_t seq;
 
@@ -55,9 +58,16 @@ WiFiUDP udp;
 
 int16_t temp;
 uint16_t hum;
-uint16_t pres;
-uint16_t vbat;
-uint16_t vbus;
+ 
+#ifdef ENABLE_LED
+void
+set_led(CRGB c)
+{
+  M5.dis.drawpix(0, c);
+  delay(50);
+  M5.update();
+}
+#endif /* defined(ENABLE_LED) */
 
 #ifdef USE_BLE
 void
@@ -81,7 +91,7 @@ send_data()
   esp_efuse_mac_get_default(mac);
 
   data = "";
-  data += (uint8_t)23;
+  data += (uint8_t)17;
   data += (uint8_t)0xff; // AD Type 0xFF: Manufacturer specific data
   data += LO_BYTE(MANUFACTURER_ID);
   data += HI_BYTE(MANUFACTURER_ID);
@@ -99,12 +109,6 @@ send_data()
   data += HI_BYTE(temp);
   data += LO_BYTE(hum);
   data += HI_BYTE(hum);
-  data += LO_BYTE(pres);
-  data += HI_BYTE(pres);
-  data += LO_BYTE(vbat);
-  data += HI_BYTE(vbat);
-  data += LO_BYTE(vbus);
-  data += HI_BYTE(vbus);
 
   adat.addData(data);
   advertising->setAdvertisementData(adat);
@@ -113,7 +117,6 @@ send_data()
   delay(T_PERIOD * 1000);
   advertising->stop();
 }
-
 
 void
 stop_comm()
@@ -127,29 +130,32 @@ stop_comm()
 void
 setup_comm()
 {
-
-  while (WiFi.status() != WL_CONNECTED) {
+  while (1) {
     WiFi.begin(AP_SSID, AP_PASSWD);
     if (WiFi.status() == WL_CONNECTED) break;
 
-#ifdef ENABLE_LCD
-    M5.Lcd.setCursor(0, 0, 1);
-    M5.Lcd.printf("Trying connect to %s", AP_SSID);
-#endif /* defined(ENABLE_LCD) */
+#ifdef ENABLE_LED
+    set_led(0x00f000);
+    delay(500);
+    set_led(0x000000);
+    delay(500);
+#endif /* defined(ENABLE_LED) */
+
+#ifndef ENABLE_LED
     delay(1000);
+#endif /* !defined(ENABLE_LED) */
   }
 
-#ifdef ENABLE_LCD
-  M5.Lcd.setCursor(0, 0, 1);
-  M5.Lcd.printf("connected to %s", AP_SSID);
-#endif /* defined(ENABLE_LCD) */
+#ifdef ENABLE_LED
+  set_led(0x0000f0);
+#endif /* defined(ENABLE_LED) */
 }
 
 void
 send_data()
 {
-  uint8_t buf[20];
-  
+  uint8_t buf[14];
+
   buf[0]  = (uint8_t)DATA_FORMAT_VERSION;
   buf[1]  = (uint8_t)seq;
 
@@ -161,12 +167,6 @@ send_data()
   buf[11] = HI_BYTE(temp);
   buf[12] = LO_BYTE(hum);
   buf[13] = HI_BYTE(hum);
-  buf[14] = LO_BYTE(pres);
-  buf[15] = HI_BYTE(pres);
-  buf[16] = LO_BYTE(vbat);
-  buf[17] = HI_BYTE(vbat);
-  buf[18] = LO_BYTE(vbus);
-  buf[19] = HI_BYTE(vbus);
 
   udp.beginPacket(SERVER_ADDR, SERVER_PORT);
   udp.write(buf, sizeof(buf));
@@ -180,44 +180,23 @@ stop_comm()
 }
 #endif /* defined(USE_WIFI) */
 
-
 void
 setup()
 {
-#ifdef ENABLE_LCD
-  M5.begin(true, true, false);
-  M5.Axp.ScreenBreath(8);
-  M5.Lcd.setRotation(3);
-  M5.Lcd.setTextFont(4);
-  M5.Lcd.setTextSize(1);
-  M5.Lcd.fillScreen(BLACK);
-#endif /* defined(ENABLE_LCD) */
-
-#ifndef ENABLE_LCD
-  M5.begin(false, false, false);
-  M5.Axp.ScreenBreath(0);
-  M5.Axp.SetLDO2(false);
-#endif /* !defined(ENABLE_LCD) */
-
-  setCpuFrequencyMhz(80);
-
-  Wire.begin(0, 26);
+  bool led;
 
 #ifdef ENABLE_LED
-  pinMode(M5STICK_PIN_LED, OUTPUT);
+  led    = true;
 #endif /* defined(ENABLE_LED) */
 
-#ifndef ENABLE_LED
-  pinMode(M5STICK_PIN_LED, INPUT_PULLDOWN);
-#endif /* !defined(ENABLE_LED) */
+  //M5.begin(false, true, led);
+  M5.begin(false, true, led);
 
-  while (!bme.begin(0x76)) {
-#ifdef ENABLE_LCD
-    M5.Lcd.setCursor(0, 0, 1);
-    M5.Lcd.println("BMP280 init fail");
-#endif /* defined(ENABLE_LCD) */
-    delay(10);
-  }
+  esp_sleep_enable_timer_wakeup(S_PERIOD * 1000000);
+  setCpuFrequencyMhz(80);
+
+  Wire.begin(SDA_PORT, SCL_PORT);
+  am2320.begin();
 
   setup_comm();
 
@@ -227,12 +206,38 @@ setup()
 void
 read_sensor()
 {
-  dht12.read();
-  temp = (uint16_t)(dht12.temperature * 100);
-  hum  = (uint16_t)(dht12.humidity * 100);
-  pres = (uint16_t)(bme.readPressure() / 10);
-  vbat = (uint16_t)(M5.Axp.GetBatVoltage() * 100);
-  vbus = (uint16_t)(M5.Axp.GetVBusVoltage() * 100);
+  int n;
+
+  n = 3;
+
+  while (n > 0) {
+#ifdef ENABLE_LED
+      set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
+    switch (am2320.read()) {
+    case AM232X_OK:
+      n--;
+#ifdef ENABLE_LED
+      set_led(0xf0f000);
+#endif /* defined(ENABLE_LED) */
+      delay(2000);
+      break;
+
+    default:
+#ifdef ENABLE_LED
+      set_led(0xf000f0);
+#endif /* defined(ENABLE_LED) */
+      delay(50);
+      break;
+    }
+  }
+
+#ifdef ENABLE_LED
+  set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
+
+  temp = (int16_t)(am2320.getTemperature() * 100);
+  hum  = (uint16_t)(am2320.getHumidity() * 100);
 }
 
 void
@@ -240,32 +245,21 @@ loop()
 {
   read_sensor();
 
-#ifdef ENABLE_LCD
-  M5.Lcd.setCursor(0, 0, 1);
-  M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%\n",
-                temp / 100.0, hum / 100.0);
-
-  M5.Lcd.printf("Air-pressure: %4.0fhPa\n",
-                pres / 10.0);
-
-  M5.Lcd.printf("VBat: %4.1fV VBus: %4.1fV\n",
-                vbat / 100.0, vbus / 100.0);
-#endif /* !defined(ENABLE_LCD) */
-
 #ifdef ENABLE_LED
-  digitalWrite(M5STICK_PIN_LED, LOW);
-#endif /* !defined(ENABLE_LED) */
+  set_led(0xf00000);
+#endif /* defined(ENABLE_LED) */
 
   send_data();
 
 #ifdef ENABLE_LED
-  digitalWrite(M5STICK_PIN_LED, HIGH);
-#endif /* !defined(ENABLE_LED) */
+  set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
 
   seq++;
 
   stop_comm();
 
   esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
-  esp_deep_sleep(S_PERIOD * 1000000);
+  // 差し引いてる6秒はセンサーのウォームアップの時間
+  esp_deep_sleep((S_PERIOD - 6) * 1000000);
 }

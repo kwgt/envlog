@@ -21,21 +21,26 @@
       <div class="mx-auto col-11">
         <h2>現在の測定値</h2>
         <div id="result" class="d-flex flex-column mt-4">
-          <div id="temperature" class="d-flex flex-row justify-content-center">
+          <div id="temperature"
+              class="d-flex flex-row justify-content-center temperature">
             <div class="label">気温</div>
             <div class="value">
               <span class="number text-right"></span>
               <span class="unit">&#x00B0;C</span>
             </div>
           </div>
-          <div id="humidity" class="d-flex flex-row justify-content-center">
+
+          <div id="humidity"
+              class="d-flex flex-row justify-content-center humidity">
             <div class="label">湿度</div>
             <div class="value">
               <span class="number text-right"></span>
               <span class="unit">&#x0025;</span>
             </div>
           </div>
-          <div id="air-pressure" class="d-flex flex-row justify-content-center">
+
+          <div id="air-pressure"
+              class="d-flex flex-row justify-content-center air-pressure">
             <div class="label">気圧</div>
             <div class="value">
               <span class="number text-right"></span>
@@ -45,9 +50,9 @@
         </div>
 
         <h2>グラフ</h2>
-        <div id="temp-graph"></div>
-        <div id="hum-graph"></div>
-        <div id="air-graph"></div>
+        <div id="temp-graph" class="temperature"></div>
+        <div id="hum-graph" class="humidity"></div>
+        <div id="air-graph" class="air-pressure"></div>
       </div>
     </div>
 

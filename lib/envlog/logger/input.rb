@@ -75,6 +75,21 @@ module EnvLog
         end
         private :put_data
 
+        def recording?(info)
+          return %w[NORMAL DEAD-BATTERY].include?(info[:state])
+        end
+        private :recording?
+
+        def timedout?(info, ts)
+          return (ts - Time.parse(info[:mtime])) > STALL_THRESHOLD
+        end
+        private :timedout?
+
+        def stalled?(info, ts)
+          return recording?(info) && timedout?(info, ts)
+        end
+        private :stalled?
+
         def monitor_thread
           Log.info("input") {"start moinitor thread"}
 
@@ -85,11 +100,7 @@ module EnvLog
               now = Time.now
 
               DBA.poll_sensor.each { |id, info|
-                next if info[:state] != "NORMAL"
-
-                if now - Time.parse(info[:mtime]) > STALL_THRESHOLD
-                  DBA.set_stall(id)
-                end
+                DBA.set_stall(id) if stalled?(info, now)
               }
 
             rescue Exit
