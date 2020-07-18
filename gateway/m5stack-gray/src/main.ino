@@ -8,10 +8,9 @@
 #include <M5Stack.h>
 #include <BLEDevice.h>
 
-#define MANUFACTURER_ID     55229
-#define DATA_FORMAT_VERSION 3
+#include "../include/gateway_common.h"
 
-#define N(x)                (sizeof(x)/sizeof(*(x)))
+#define N(x)        (sizeof(x)/sizeof(*(x)))
 #define U16(p) \
       (uint16_t)((((p)[1]<<8)&0xff00)|(((p)[0]<<0)&0x00ff))
 
@@ -42,12 +41,18 @@ loop()
   int i;
   int nf;       // as Number of Found
   int ns;       // as Number of Sensor
+  int x;
   int y;
+  int yo;
 
   std::string dat;
   uint8_t* cstr;
   char addr[24];
   int seq;
+
+  uint16_t f;
+  int pos;
+  char str[24];
   float temp;
   float hum;
   float pres;
@@ -75,37 +80,104 @@ loop()
     sprintf(addr, "%02x:%02x:%02x:%02x:%02x:%02x",
             cstr[4], cstr[5], cstr[6], cstr[7], cstr[8], cstr[9]);
 
-    temp = U16(cstr + 10) / 100.0;
-    hum  = U16(cstr + 12) / 100.0;
-    pres = U16(cstr + 14) / 10.0;
-    vbat = U16(cstr + 16) / 100.0;
-    vbus = U16(cstr + 18) / 100.0;
+    f    = U16(cstr + 10);
+    pos  = 12;
 
-    M5.Lcd.setCursor(20, y, 1);
+    M5.Lcd.setCursor(20, y + 10, 1);
     M5.Lcd.printf("sensor %s", addr);
 
-    M5.Lcd.setCursor(30, y + 10, 1);
-    M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%", temp, hum);
-
-    M5.Lcd.setCursor(30, y + 20, 1);
-    M5.Lcd.printf("Air-pressure: %4.0fhPa", pres);
-
-    M5.Lcd.setCursor(30, y + 30, 1);
-    M5.Lcd.printf("RSSI: %d, VBat: %3.1fV VBus: %3.1fV",
-                  dev.getRSSI(), vbat, vbus);
-
     Serial.printf("{");
-    Serial.printf("\"addr\":\"%s\",", addr);
-    Serial.printf("\"seq\":%d,",      seq);
-    Serial.printf("\"temp\":%.1f,",   temp);
-    Serial.printf("\"hum\":%.1f,",    hum);
-    Serial.printf("\"a/p\":%.0f,",    pres);
-    Serial.printf("\"rssi\":%d,",     dev.getRSSI());
-    Serial.printf("\"vbat\":%.2f,",   vbat);
-    Serial.printf("\"vbus\":%.2f",    vbus);
+    Serial.printf("\"addr\":\"%s\"", addr);
+    Serial.printf(",\"seq\":%d", seq);
+
+    yo = 20;
+
+    /*
+     * temperature & humidity
+     */
+    x  = 30;
+
+    if (f & F_TEMP) {
+      temp = U16(cstr + pos) / 100.0;
+
+      sprintf(str, "Temp: %4.1f'C", temp);
+      M5.Lcd.setCursor(x, y + yo, 1);
+      M5.Lcd.print(str);
+
+      Serial.printf(",\"temp\":%.1f", temp);
+
+      pos += 2;
+      x   += 8 + (strlen(str) + 1);
+    }
+
+    if (f & F_HUMIDITY) {
+      hum  = U16(cstr + pos) / 100.0;
+
+      sprintf(str, "Hum: %4.1f%%", hum);
+      M5.Lcd.setCursor(x, y + yo, 1);
+      M5.Lcd.print(str);
+
+      Serial.printf(",\"hum\":%.1f", hum);
+
+      pos += 2;
+    }
+
+    if (f & (F_TEMP | F_HUMIDITY)) yo += 10;
+
+    /*
+     * air-pressure
+     */
+    if (f & F_AIRPRES) {
+      pres = U16(cstr + pos) / 10.0;
+
+      sprintf(str, "Air-pressure: %4.0fhPa", pres);
+      M5.Lcd.setCursor(30, y + yo, 1);
+      M5.Lcd.print(str);
+
+      Serial.printf(",\"a/p\":%.0f", pres);
+
+      pos += 2;
+      yo  += 10;
+    }
+
+    /*
+     * vbat & vbus & rssi
+     */
+    x = 30;
+
+    if (f & F_VBAT) {
+      vbat = U16(cstr + pos) / 100.0;
+
+      sprintf(str, "VBat: %3.1fV", vbat);
+      M5.Lcd.setCursor(x, y + yo, 1);
+      M5.Lcd.print(str);
+
+      Serial.printf(",\"vbat\":%.2f", vbat);
+
+      pos += 2;
+      x   += 8 * (strlen(str) + 1);
+    }
+
+    if (f & F_VBUS) {
+      vbus = U16(cstr + pos) / 100.0;
+
+      sprintf(str, "VBus: %3.1fV", vbus);
+      M5.Lcd.setCursor(x, y + yo, 1);
+      M5.Lcd.print(str);
+
+      Serial.printf(",\"vbus\":%.2f", vbus);
+
+      pos += 2;
+      x   += 8 * (strlen(str) + 1);
+    }
+
+    M5.Lcd.setCursor(x, y + yo, 1);
+    M5.Lcd.printf("RSSI: %d", dev.getRSSI());
+
+    Serial.printf(",\"rssi\":%d",     dev.getRSSI());
     Serial.printf("}\r\n");
 
-    y += 45;
+    y += (yo + 15);
     ns++;
   }
 

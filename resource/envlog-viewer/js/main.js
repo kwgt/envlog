@@ -5,6 +5,8 @@
  */
 
 (function () {
+  const NONE_VALUE_STRING = " \u{2014} ";
+
   var session;
 
   function lookupStateClass(val) {
@@ -43,6 +45,10 @@
     return ret;
   }
 
+  function formatValue(fmt, val) {
+    return ((val)? sprintf(fmt, val): NONE_VALUE_STRING);
+  }
+
   function stringifyValues(src) {
     var ret;
 
@@ -50,11 +56,11 @@
     case "NORMAL":
     case "DEAD-BATTERY":
       ret = {
-        "temp": sprintf("%4.1f", src["temp"]),
-        "hum":  sprintf("%4.1f", src["hum"]),
-        "a/p":  sprintf("%4d",   src["a/p"]),
-        "vbat": sprintf("%4.2f", src["vbat"]),
-        "vbus": sprintf("%4.2f", src["vbus"]),
+        "temp": formatValue("%4.1f", src["temp"]),
+        "hum":  formatValue("%4.1f", src["hum"]),
+        "a/p":  formatValue("%4d",   src["a/p"]),
+        "vbat": formatValue("%4.2f", src["vbat"]),
+        "vbus": formatValue("%4.2f", src["vbus"]),
       };
       break;
 
@@ -63,11 +69,11 @@
     case "STALL":
     case "PAUSE":
         ret = {
-          "temp": " \u{2014} ",
-          "hum":  " \u{2014} ",
-          "a/p":  " \u{2014} ",
-          "vbat": " \u{2014} ",
-          "vbus": " \u{2014} ",
+          "temp": NONE_VALUE_STRING,
+          "hum":  NONE_VALUE_STRING,
+          "a/p":  NONE_VALUE_STRING,
+          "vbat": NONE_VALUE_STRING,
+          "vbus": NONE_VALUE_STRING,
         };
       break;
     }

@@ -10,18 +10,6 @@
 #undef ENABLE_LCD
 #define ENABLE_LED
 
-#ifdef USE_BLE
-#define MANUFACTURER_ID       55229
-#define DEVICE_NAME           "ENVLOG sensor"
-#endif /* defined(USE_BLE) */
-
-#ifdef USE_WIFI
-#define AP_SSID               "XXXXXXXXXXXXXXXX"
-#define AP_PASSWD             "XXXXXXXXXXXXXXXX"
-#define SERVER_ADDR           "192.168.0.30"
-#define SERVER_PORT           1234
-#endif /* defined(USE_WIFI) */
-
 #include <M5StickC.h>
 #include <Wire.h>
 
@@ -44,15 +32,11 @@
 #include <esp_wifi.h>
 #endif /* defined(USE_WIFI) */
 
+#include "../include/sensor_common.h"
 
-#define DATA_FORMAT_VERSION   3
-#define T_PERIOD              1         // Transmission period
-#define S_PERIOD              119       // Sleeping period
+#define F_VALUE          (F_TEMP | F_HUMIDITY | F_AIRPRESS | F_VBAT | F_VBUS)
  
-#define M5STICK_PIN_LED       10
-
-#define LO_BYTE(x)            (uint8_t)(((x) >> 0) & 0xff)
-#define HI_BYTE(x)            (uint8_t)(((x) >> 8) & 0xff)
+#define M5STICK_PIN_LED  10
 
 DHT12 dht12;
 Adafruit_BMP280 bme;
@@ -97,7 +81,7 @@ send_data()
   esp_efuse_mac_get_default(mac);
 
   data = "";
-  data += (uint8_t)21;
+  data += (uint8_t)23;
   data += (uint8_t)0xff; // AD Type 0xFF: Manufacturer specific data
   data += LO_BYTE(MANUFACTURER_ID);
   data += HI_BYTE(MANUFACTURER_ID);
@@ -109,6 +93,8 @@ send_data()
   data += mac[3];
   data += mac[4];
   data += mac[5];
+  data += LO_BYTE(F_VALUE);
+  data += HI_BYTE(F_VALUE);
   data += LO_BYTE(temp);
   data += HI_BYTE(temp);
   data += LO_BYTE(hum);
@@ -141,14 +127,16 @@ stop_comm()
 void
 setup_comm()
 {
-  WiFi.begin(AP_SSID, AP_PASSWD);
 
   while (WiFi.status() != WL_CONNECTED) {
+    WiFi.begin(AP_SSID, AP_PASSWD);
+    if (WiFi.status() == WL_CONNECTED) break;
+
 #ifdef ENABLE_LCD
     M5.Lcd.setCursor(0, 0, 1);
     M5.Lcd.printf("Trying connect to %s", AP_SSID);
 #endif /* defined(ENABLE_LCD) */
-    delay(500);
+    delay(1000);
   }
 
 #ifdef ENABLE_LCD
@@ -160,23 +148,25 @@ setup_comm()
 void
 send_data()
 {
-  uint8_t buf[18];
+  uint8_t buf[20];
   
   buf[0]  = (uint8_t)DATA_FORMAT_VERSION;
   buf[1]  = (uint8_t)seq;
 
   esp_efuse_mac_get_default(buf + 2);
 
-  buf[8]  = LO_BYTE(temp);
-  buf[9]  = HI_BYTE(temp);
-  buf[10] = LO_BYTE(hum);
-  buf[11] = HI_BYTE(hum);
-  buf[12] = LO_BYTE(pres);
-  buf[13] = HI_BYTE(pres);
-  buf[14] = LO_BYTE(vbat);
-  buf[15] = HI_BYTE(vbat);
-  buf[16] = LO_BYTE(vbus);
-  buf[17] = HI_BYTE(vbus);
+  buf[8]  = LO_BYTE(F_VALUE);
+  buf[9]  = HI_BYTE(F_VALUE);
+  buf[10] = LO_BYTE(temp);
+  buf[11] = HI_BYTE(temp);
+  buf[12] = LO_BYTE(hum);
+  buf[13] = HI_BYTE(hum);
+  buf[14] = LO_BYTE(pres);
+  buf[15] = HI_BYTE(pres);
+  buf[16] = LO_BYTE(vbat);
+  buf[17] = HI_BYTE(vbat);
+  buf[18] = LO_BYTE(vbus);
+  buf[19] = HI_BYTE(vbus);
 
   udp.beginPacket(SERVER_ADDR, SERVER_PORT);
   udp.write(buf, sizeof(buf));

@@ -62,7 +62,7 @@ module EnvLog
           db = Mysql2::Client.new(DB_CRED)
 
           rows = db.query(<<~EOQ, :as => :array)
-            select id, mtime from SENSOR_TABLE where addr is not NULL;
+            select id, mtime, state from SENSOR_TABLE where addr is not NULL;
           EOQ
 
           ret = rows.inject({}) { |m, n|
