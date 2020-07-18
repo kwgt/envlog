@@ -130,8 +130,9 @@ stop_comm()
 void
 setup_comm()
 {
+  WiFi.begin(AP_SSID, AP_PASSWD);
+
   while (1) {
-    WiFi.begin(AP_SSID, AP_PASSWD);
     if (WiFi.status() == WL_CONNECTED) break;
 
 #ifdef ENABLE_LED
