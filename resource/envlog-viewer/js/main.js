@@ -82,11 +82,27 @@
   }
 
   function setSensorRowValue(info) {
-    let foo;
+    var $tr;
+    var foo;
 
+    $tr = $(`table#sensor-table > tbody > tr[data-sensor-id=${info["id"]}]`);
     foo = stringifyValues(info);
 
-    $(`table#sensor-table > tbody > tr[data-sensor-id=${info["id"]}]`)
+    if (info["state"] == "UNKNOWN" || info["state"] == "READY") {
+      $tr
+        .find('td.sensor-num > a')
+          .addClass('disabled')
+          .attr('href', '#')
+        .end();
+    } else {
+      $tr
+        .find('td.sensor-num > a')
+          .removeClass('disabled')
+          .attr('href', `/sensor/${info["id"]}`)
+        .end();
+    }
+
+    $tr
       .find('td.last-update')
         .text(info["mtime"])
       .end()
@@ -123,7 +139,12 @@
       .append($('<td>')
         .addClass('sensor-num')
         .append($('<a>')
-          .attr('href', `sensor/${id}`)
+          .attr('href', '#')
+          .on('click', (e) => {
+            if ($(e.target).hasClass('disabled')) {
+              e.preventDefault();
+            }
+          })
         )
       )
       .append($('<td>')
