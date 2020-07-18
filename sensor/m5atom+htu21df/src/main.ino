@@ -130,8 +130,9 @@ stop_comm()
 void
 setup_comm()
 {
+  WiFi.begin(AP_SSID, AP_PASSWD);
+
   while (1) {
-    WiFi.begin(AP_SSID, AP_PASSWD);
     if (WiFi.status() == WL_CONNECTED) break;
 
 #ifdef ENABLE_LED
@@ -220,7 +221,6 @@ setup()
 void
 read_sensor()
 {
-  dht12.read();
   temp = (int16_t)(htu.readTemperature() * 100);
   hum  = (uint16_t)(htu.readHumidity() * 100);
 }

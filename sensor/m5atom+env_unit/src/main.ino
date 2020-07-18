@@ -30,7 +30,7 @@
 #include <esp_wifi.h>
 #endif /* defined(USE_WIFI) */
 
-#include "../include/sensor_common.h"
+#include "../../include/sensor_common.h"
 
 #define F_VALUE     (F_TEMP | F_HUMIDITY | F_AIRPRES)
 
@@ -132,8 +132,9 @@ stop_comm()
 void
 setup_comm()
 {
+  WiFi.begin(AP_SSID, AP_PASSWD);
+
   while (1) {
-    WiFi.begin(AP_SSID, AP_PASSWD);
     if (WiFi.status() == WL_CONNECTED) break;
 
 #ifdef ENABLE_LED
@@ -228,8 +229,6 @@ read_sensor()
   temp = (int16_t)(dht12.temperature * 100);
   hum  = (uint16_t)(dht12.humidity * 100);
   pres = (uint16_t)(bme.readPressure() / 10);
-  vbat = (uint16_t)0;
-  vbus = (uint16_t)500;
 }
 
 void
