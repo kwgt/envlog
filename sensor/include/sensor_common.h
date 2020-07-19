@@ -26,6 +26,7 @@
  */
 #define AP_SSID               "XXXXXXXXXXXXX"
 #define AP_PASSWD             "XXXXXXXXXXXXX"
+#define AP_RETRY_LIMIT        10
 #define SERVER_ADDR           "192.168.0.30"
 #define SERVER_PORT           1234
 
