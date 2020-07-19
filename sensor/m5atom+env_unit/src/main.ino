@@ -132,9 +132,11 @@ stop_comm()
 void
 setup_comm()
 {
+  int i;
+
   WiFi.begin(AP_SSID, AP_PASSWD);
 
-  while (1) {
+  for(i = 0; i < AP_RETRY_LIMIT; i++) {
     if (WiFi.status() == WL_CONNECTED) break;
 
 #ifdef ENABLE_LED
@@ -147,6 +149,12 @@ setup_comm()
 #ifndef ENABLE_LED
     delay(1000);
 #endif /* !defined(ENABLE_LED) */
+  }
+
+  if (i == AP_RETRY_LIMIT) {
+    // 限度数を超えて接続に失敗した場合はここでdeep sleep
+    // ※ 起床時はリセットがかかるのでここに入るとこのターンはこれで終了
+    esp_deep_sleep(S_PERIOD * 1000000);
   }
 
 #ifdef ENABLE_LED
@@ -196,7 +204,7 @@ setup()
 
   M5.begin(false, true, led);
 
-  esp_sleep_enable_timer_wakeup(S_PERIOD * 1000000);
+  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   setCpuFrequencyMhz(80);
 
   Wire.begin(26, 32);
@@ -250,6 +258,5 @@ loop()
 
   stop_comm();
 
-  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   esp_deep_sleep(S_PERIOD * 1000000);
 }
