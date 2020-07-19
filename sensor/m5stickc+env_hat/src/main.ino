@@ -127,8 +127,9 @@ stop_comm()
 void
 setup_comm()
 {
+  int i;
 
-  while (WiFi.status() != WL_CONNECTED) {
+  for (i = 0; i < AP_RETRY_LIMIT; i++) {
     WiFi.begin(AP_SSID, AP_PASSWD);
     if (WiFi.status() == WL_CONNECTED) break;
 
@@ -137,6 +138,12 @@ setup_comm()
     M5.Lcd.printf("Trying connect to %s", AP_SSID);
 #endif /* defined(ENABLE_LCD) */
     delay(1000);
+  }
+
+  if (i == AP_RETRY_LIMIT) {
+    // 限度数を超えて接続に失敗した場合はここでdeep sleep
+    // ※ 起床時はリセットがかかるのでここに入るとこのターンはこれで終了
+    esp_deep_sleep(S_PERIOD * 1000000);
   }
 
 #ifdef ENABLE_LCD
@@ -199,6 +206,7 @@ setup()
   M5.Axp.SetLDO2(false);
 #endif /* !defined(ENABLE_LCD) */
 
+  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   setCpuFrequencyMhz(80);
 
   Wire.begin(0, 26);
@@ -266,6 +274,5 @@ loop()
 
   stop_comm();
 
-  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   esp_deep_sleep(S_PERIOD * 1000000);
 }
