@@ -8,7 +8,7 @@
 #include <M5Stack.h>
 #include <BLEDevice.h>
 
-#include "../include/gateway_common.h"
+#include "../../include/gateway_common.h"
 
 #define N(x)        (sizeof(x)/sizeof(*(x)))
 #define U16(p) \

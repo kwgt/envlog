@@ -41,7 +41,7 @@
 #endif /* defined(USE_BLE) && defined(USE_WIFI) */
 
 DHT12 dht12;
-Adafruit_BMP280 bme;
+Adafruit_BMP280 bmp;
 RTC_DATA_ATTR int boot_count = 0;
 RTC_DATA_ATTR uint8_t seq;
 
@@ -209,7 +209,7 @@ setup()
 
   Wire.begin(26, 32);
 
-  while (!bme.begin(0x76)) {
+  while (!bmp.begin(0x76)) {
 #ifdef ENABLE_LED
     set_led(0x00f000);
 #endif /* defined(ENABLE_LED) */
@@ -236,7 +236,7 @@ read_sensor()
   dht12.read();
   temp = (int16_t)(dht12.temperature * 100);
   hum  = (uint16_t)(dht12.humidity * 100);
-  pres = (uint16_t)(bme.readPressure() / 10);
+  pres = (uint16_t)(bmp.readPressure() / 10);
 }
 
 void
