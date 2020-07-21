@@ -107,7 +107,7 @@ loop()
       Serial.printf(",\"temp\":%.1f", temp);
 
       pos += 2;
-      x   += 8 + (strlen(str) + 1);
+      x   += 8 * (strlen(str) + 1);
     }
 
     if (f & F_HUMIDITY) {
