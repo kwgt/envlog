@@ -32,9 +32,9 @@
 #include <esp_wifi.h>
 #endif /* defined(USE_WIFI) */
 
-#include "../include/sensor_common.h"
+#include "../../include/sensor_common.h"
 
-#define F_VALUE          (F_TEMP | F_HUMIDITY | F_AIRPRESS | F_VBAT | F_VBUS)
+#define F_VALUE          (F_TEMP | F_HUMIDITY | F_AIRPRES | F_VBAT | F_VBUS)
  
 #define M5STICK_PIN_LED  10
 

@@ -12,8 +12,8 @@
 #define F_VBAT                0x0008
 #define F_VBUS                0x0010
 
-#define LO_BYTE(x)            (uint8_t)(((x) >> 0) & 0xff)
-#define HI_BYTE(x)            (uint8_t)(((x) >> 8) & 0xff)
+#define LO_BYTE(x)            (char)(((x) >> 0) & 0xff)
+#define HI_BYTE(x)            (char)(((x) >> 8) & 0xff)
 
 /*
  * BLE
