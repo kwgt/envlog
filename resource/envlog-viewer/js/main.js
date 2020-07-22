@@ -203,7 +203,7 @@
         }
 
         setSensorRowValue(info);
-        $('table#sensor-table').trigger('change');
+        $('table#sensor-table').trigger('update');
       });
   }
 
@@ -227,7 +227,11 @@
       setSensorRowValue(info)
     });
 
-    $('table#sensor-table').tablesorter({sortList: [[1, 1]]});
+    $('table#sensor-table')
+      .tablesorter({
+        sortList: [[1, 1]],
+        resort:   true,
+      });
   }
 
   function startSession() {
