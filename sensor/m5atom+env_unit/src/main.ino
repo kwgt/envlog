@@ -233,7 +233,29 @@ setup()
 void
 read_sensor()
 {
-  dht12.read();
+  int n;
+
+  /*
+   * DHT12のhumidity responseは最大20sかかる。
+   * m5atomの場合は消費電力や本体温度の上昇を気にする必要が無いので真面目に
+   * 待ってみる。
+   */
+  n = 10;
+
+  while (n-- > 0) {
+#ifdef ENABLE_LED
+    set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
+
+    dht12.read();
+
+    delay(500);
+#ifdef ENABLE_LED
+    set_led(0xf0f000);
+#endif /* defined(ENABLE_LED) */
+    delay(1500);
+  }
+
   temp = (int16_t)(dht12.temperature * 100);
   hum  = (uint16_t)(dht12.humidity * 100);
   pres = (uint16_t)(bmp.readPressure() / 10);
@@ -258,5 +280,5 @@ loop()
 
   stop_comm();
 
-  esp_deep_sleep(S_PERIOD * 1000000);
+  esp_deep_sleep((S_PERIOD - 20) * 1000000);
 }
