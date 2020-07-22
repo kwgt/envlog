@@ -14,6 +14,8 @@
 #define U16(p) \
       (uint16_t)((((p)[1]<<8)&0xff00)|(((p)[0]<<0)&0x00ff))
 
+#define FONT_WIDTH  6
+
 BLEScan* scanner;
 
 void
@@ -107,7 +109,7 @@ loop()
       Serial.printf(",\"temp\":%.1f", temp);
 
       pos += 2;
-      x   += 8 * (strlen(str) + 1);
+      x   += FONT_WIDTH * (strlen(str) + 1);
     }
 
     if (f & F_HUMIDITY) {
@@ -155,7 +157,7 @@ loop()
       Serial.printf(",\"vbat\":%.2f", vbat);
 
       pos += 2;
-      x   += 8 * (strlen(str) + 1);
+      x   += FONT_WIDTH * (strlen(str) + 1);
     }
 
     if (f & F_VBUS) {
@@ -168,7 +170,7 @@ loop()
       Serial.printf(",\"vbus\":%.2f", vbus);
 
       pos += 2;
-      x   += 8 * (strlen(str) + 1);
+      x   += FONT_WIDTH * (strlen(str) + 1);
     }
 
     M5.Lcd.setCursor(x, y + yo, 1);
