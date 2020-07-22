@@ -35,11 +35,11 @@ table#sensor-table {
   }
 
   .vbat {
-    width: 4em;
+    width: 5em;
   }
 
   .vbus {
-    width: 4em;
+    width: 5em;
   }
 
   .state {
@@ -196,3 +196,5 @@ div#confirm-modal {
     }
   }
 }
+
+@import "jquery.tablesorter.scss";
