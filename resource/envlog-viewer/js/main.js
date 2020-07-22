@@ -203,6 +203,7 @@
         }
 
         setSensorRowValue(info);
+        $('table#sensor-table').trigger('change');
       });
   }
 
@@ -225,6 +226,8 @@
       $('table#sensor-table > tbody').append(createNewRow(info["id"]));
       setSensorRowValue(info)
     });
+
+    $('table#sensor-table').tablesorter({sortList: [[1, 1]]});
   }
 
   function startSession() {
@@ -297,6 +300,7 @@
       "/js/sprintf.min.js",
       "/js/moment.min.js",
       "/js/lodash.min.js",
+      "/js/jquery.tablesorter.min.js",
 
       "/css/main/style.scss",
       "/js/msgpack-rpc.js",
