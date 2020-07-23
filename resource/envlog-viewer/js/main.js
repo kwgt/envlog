@@ -5,6 +5,8 @@
  */
 
 (function () {
+  const NONE_VALUE_STRING = " \u{2014} ";
+
   var session;
 
   function lookupStateClass(val) {
@@ -43,6 +45,10 @@
     return ret;
   }
 
+  function formatValue(fmt, val) {
+    return ((val)? sprintf(fmt, val): NONE_VALUE_STRING);
+  }
+
   function stringifyValues(src) {
     var ret;
 
@@ -50,11 +56,11 @@
     case "NORMAL":
     case "DEAD-BATTERY":
       ret = {
-        "temp": sprintf("%4.1f", src["temp"]),
-        "hum":  sprintf("%4.1f", src["hum"]),
-        "a/p":  sprintf("%4d",   src["a/p"]),
-        "vbat": sprintf("%4.2f", src["vbat"]),
-        "vbus": sprintf("%4.2f", src["vbus"]),
+        "temp": formatValue("%4.1f", src["temp"]),
+        "hum":  formatValue("%4.1f", src["hum"]),
+        "a/p":  formatValue("%4d",   src["a/p"]),
+        "vbat": formatValue("%4.2f", src["vbat"]),
+        "vbus": formatValue("%4.2f", src["vbus"]),
       };
       break;
 
@@ -63,11 +69,11 @@
     case "STALL":
     case "PAUSE":
         ret = {
-          "temp": " \u{2014} ",
-          "hum":  " \u{2014} ",
-          "a/p":  " \u{2014} ",
-          "vbat": " \u{2014} ",
-          "vbus": " \u{2014} ",
+          "temp": NONE_VALUE_STRING,
+          "hum":  NONE_VALUE_STRING,
+          "a/p":  NONE_VALUE_STRING,
+          "vbat": NONE_VALUE_STRING,
+          "vbus": NONE_VALUE_STRING,
         };
       break;
     }
@@ -76,11 +82,27 @@
   }
 
   function setSensorRowValue(info) {
-    let foo;
+    var $tr;
+    var foo;
 
+    $tr = $(`table#sensor-table > tbody > tr[data-sensor-id=${info["id"]}]`);
     foo = stringifyValues(info);
 
-    $(`table#sensor-table > tbody > tr[data-sensor-id=${info["id"]}]`)
+    if (info["state"] == "UNKNOWN" || info["state"] == "READY") {
+      $tr
+        .find('td.sensor-num > a')
+          .addClass('disabled')
+          .attr('href', '#')
+        .end();
+    } else {
+      $tr
+        .find('td.sensor-num > a')
+          .removeClass('disabled')
+          .attr('href', `/sensor/${info["id"]}`)
+        .end();
+    }
+
+    $tr
       .find('td.last-update')
         .text(info["mtime"])
       .end()
@@ -117,7 +139,12 @@
       .append($('<td>')
         .addClass('sensor-num')
         .append($('<a>')
-          .attr('href', `sensor/${id}`)
+          .attr('href', '#')
+          .on('click', (e) => {
+            if ($(e.target).hasClass('disabled')) {
+              e.preventDefault();
+            }
+          })
         )
       )
       .append($('<td>')
@@ -203,6 +230,7 @@
         }
 
         setSensorRowValue(info);
+        $('table#sensor-table').trigger('update');
       });
   }
 
@@ -225,6 +253,12 @@
       $('table#sensor-table > tbody').append(createNewRow(info["id"]));
       setSensorRowValue(info)
     });
+
+    $('table#sensor-table')
+      .tablesorter({
+        sortList: [[1, 1]],
+        resort:   true,
+      });
   }
 
   function startSession() {
@@ -297,6 +331,7 @@
       "/js/sprintf.min.js",
       "/js/moment.min.js",
       "/js/lodash.min.js",
+      "/js/jquery.tablesorter.min.js",
 
       "/css/main/style.scss",
       "/js/msgpack-rpc.js",

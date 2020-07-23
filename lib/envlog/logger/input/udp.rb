@@ -13,22 +13,21 @@ require 'socket'
 module EnvLog
   module Logger
     module InputSource
-      SUPPORTED_FORMAT_VERSION = 3
+      SUPPORTED_FORMAT_VERSION = 4
 
-      JSON_FORMAT = <<~EOT.gsub(/\s/, "")
-        {
-          "addr":"%02x:%02x:%02x:%02x:%02x:%02x",
-          "seq":%d,
-          "temp":%4.1f,
-          "hum":%4.1f,
-          "a/p":%d,
-          "rssi":null,
-          "vbat":%4.2f,
-          "vbus":%4.2f
-        }
-      EOT
+      module LocalArrayExtender
+        refine Array do
+          def shift_u16
+            lo, hi = self.shift(2)
+
+            return (((hi << 8) & 0xff00) | ((lo << 0) & 0x00ff))
+          end
+        end
+      end
 
       class << self
+        using LocalArrayExtender
+
         def add_udp_source(src)
           threads << Thread.fork {
             addr = IPAddr.new(src[:bind] || "::")
@@ -46,19 +45,39 @@ module EnvLog
 
             loop {
               begin
-                dat = sock.recv(1024)
-                tmp = dat.unpack("CCC6s<S<S<S<S<")
+                src  = sock.recv(1024).bytes
 
-                next if tmp[0] != SUPPORTED_FORMAT_VERSION
+                next if src.shift != SUPPORTED_FORMAT_VERSION
 
-                json = JSON_FORMAT %
-                        [tmp[2], tmp[3], tmp[4], tmp[5], tmp[6], tmp[7],
-                         tmp[1],
-                         tmp[8]  / 100.0,
-                         tmp[9]  / 100.0,
-                         tmp[10] / 10.0,
-                         tmp[11] / 100.0,
-                         tmp[12] / 100.0]
+                json = "{"
+
+                json << '"seq":%s' % src.shift
+                json << ',"addr":"%02x:%02x:%02x:%02x:%02x:%02x"' % src.shift(6)
+
+                flg = src.shift_u16
+
+                if flg.anybits?(0x0001)
+                  json << ',"temp":%.1f' % (src.shift_u16 / 100.0)
+                end
+
+                if flg.anybits?(0x0002)
+                  json << ',"hum":%.1f' % (src.shift_u16 / 100.0)
+                end
+
+                if flg.anybits?(0x0004)
+                  json << ',"a/p":%d' % (src.shift_u16 / 10.0).round
+                end
+
+                if flg.anybits?(0x0008)
+                  json << ',"vbat":%.2f' % (src.shift_u16 / 100.0)
+                end
+
+                if flg.anybits?(0x0010)
+                  json << ',"vbus":%.2f' % (src.shift_u16 / 100.0)
+                end
+
+
+                json << "}"
 
                 Log.debug(ep) {"receive: #{json.dump}"}
 
@@ -66,6 +85,10 @@ module EnvLog
 
               rescue Exit
                 break
+
+              rescue => e
+                Log.error(ep) {"error occurred (#{e.message})"}
+                pp e.backtrace
               end
             }
 

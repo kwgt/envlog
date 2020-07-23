@@ -62,7 +62,7 @@ module EnvLog
           db = Mysql2::Client.new(DB_CRED)
 
           rows = db.query(<<~EOQ, :as => :array)
-            select id, mtime from SENSOR_TABLE where addr is not NULL;
+            select id, mtime, state from SENSOR_TABLE where addr is not NULL;
           EOQ
 
           ret = rows.inject({}) { |m, n|
@@ -96,12 +96,12 @@ module EnvLog
             insert into DATA_TABLE
                 values ("#{id}",
                         "#{ts}",
-                        #{data["temp"]},
-                        #{data["hum"]},
-                        #{data["a/p"]},
-                        #{data["rssi"] || "null"},
-                        #{data["vbat"]},
-                        #{data["vbus"]});
+                        #{data["temp"] || "NULL"},
+                        #{data["hum"]  || "NULL"},
+                        #{data["a/p"]  || "NULL"},
+                        #{data["rssi"] || "NULL"},
+                        #{data["vbat"] || "NULL"},
+                        #{data["vbus"] || "NULL"});
           EOQ
 
           Log.debug("mysql2") {"update #{ts}.#{id[0,8]}"}

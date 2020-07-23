@@ -208,7 +208,8 @@ module EnvLog
 
             db.execute(<<~EOQ, descr, addr)
               update SENSOR_TABLE
-                  set mtime = datetime('now', 'localtime'), descr = ?
+                  set mtime = datetime('now', 'localtime'),
+                      descr = ?
                   where addr = ?;
             EOQ
 
@@ -237,7 +238,8 @@ module EnvLog
 
             db.execute(<<~EOQ, src.upcase, addr)
               update SENSOR_TABLE
-                  set mtime = datetime('now', 'localtime'), `pow-source` = ?
+                  set mtime = datetime('now', 'localtime'),
+                      `pow-source` = ?
                   where addr = ?;
             EOQ
 
@@ -274,7 +276,8 @@ module EnvLog
 
             db.execute(<<~EOQ, addr)
               update SENSOR_TABLE
-                  set mtime = datetime('now', 'localtime'), state = "READY"
+                  set mtime = datetime('now', 'localtime'),
+                      state = "READY"
                   where addr = ?;
             EOQ
 
@@ -305,7 +308,8 @@ module EnvLog
 
             db.execute(<<~EOQ, addr)
               update SENSOR_TABLE
-                  set mtime = datetime('now', 'localtime'), state = "PAUSE"
+                  set mtime = datetime('now', 'localtime'),
+                      state = "PAUSE"
                   where addr = ?;
             EOQ
 
@@ -336,7 +340,8 @@ module EnvLog
 
             db.execute(<<~EOQ, addr)
               update SENSOR_TABLE
-                  set mtime = datetime('now', 'localtime'), state = "NORMAL"
+                  set mtime = datetime('now', 'localtime'),
+                      state = "NORMAL"
                   where addr = ?;
             EOQ
 

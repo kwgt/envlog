@@ -7,16 +7,35 @@
 (function () {
   var session;
   var sensorId;
+  var now;
 
   function setSensorValue(info) {
-    $('div#temperature > div.value > span.number').text(info["temp"]);
-    $('div#humidity > div.value > span.number').text(info["hum"]);
-    $('div#air-pressure > div.value > span.number').text(info["a/p"]);
+    if (info["temp"]) {
+      $('div#temperature > div.value > span.number')
+        .text(sprintf("%.1f", info["temp"]));
+    } else {
+      $('div#temperature').remove();
+    }
+
+    if (info["hum"]) {
+      $('div#humidity > div.value > span.number')
+        .text(sprintf("%.1f", info["hum"]));
+    } else {
+      $('div#humidity').remove();
+    }
+
+    if (info["a/p"]) {
+      $('div#air-pressure > div.value > span.number').text(info["a/p"]);
+    } else {
+      $('div#air-pressure').remove();
+    }
   }
 
   function plotTemperatureData(info) {
     var trace;
     var data;
+    var head;
+    var tail;
     var layout;
 
     trace  = {
@@ -28,10 +47,15 @@
     };
 
     data   = [trace]
+    head   = moment(now).subtract(1, 'days').format("YYYY-MM-DD HH:mm:ss");
+    tail   = now.format("YYYY-MM-DD HH:mm:ss");
 
     layout = {
-      title: "気温",
-      xaxis: {type:"date"},
+      title:        "気温",
+      xaxis: {
+        range:      [head, tail],
+        type:       "date"
+      },
       yaxis: {
         autorange:  false,
         type:       "linear",
@@ -46,6 +70,8 @@
   function plotHumidityData(info) {
     var trace;
     var data;
+    var head;
+    var tail;
     var layout;
 
     trace  = {
@@ -57,10 +83,15 @@
     };
 
     data   = [trace]
+    head   = moment(now).subtract(1, 'days').format("YYYY-MM-DD HH:mm:ss");
+    tail   = now.format("YYYY-MM-DD HH:mm:ss");
 
     layout = {
-      title: "湿度",
-      xaxis: {type:"date"},
+      title:        "湿度",
+      xaxis: {
+        range:      [head, tail],
+        type:       "date"
+      },
       yaxis: {
         autorange:  false,
         type:       "linear",
@@ -75,6 +106,8 @@
   function plotAirPressureData(info) {
     var trace;
     var data;
+    var head;
+    var tail;
     var layout;
 
     trace  = {
@@ -86,10 +119,15 @@
     };
 
     data   = [trace]
+    head   = moment(now).subtract(1, 'days').format("YYYY-MM-DD HH:mm:ss");
+    tail   = now.format("YYYY-MM-DD HH:mm:ss");
 
     layout = {
-      title: "気圧",
-      xaxis: {type:"date"},
+      title:        "気圧",
+      xaxis: {
+        range:      [head, tail],
+        type:       "date"
+      },
       yaxis: {
         autorange:  false,
         type:       "linear",
@@ -107,17 +145,29 @@
     /*
      * 気温
      */
-    plotTemperatureData(info);
+    if (info["temp"]) {
+      plotTemperatureData(info);
+    } else {
+      $("div#temp-graph").remove();
+    }
 
     /*
      *  湿度
      */
-    plotHumidityData(info);
+    if (info["hum"]) {
+      plotHumidityData(info);
+    } else {
+      $("div#hum-graph").remove();
+    }
 
     /*
      *  気圧
      */
-    plotAirPressureData(info);
+    if (info["a/p"]) {
+      plotAirPressureData(info);
+    } else {
+      $("div#air-graph").remove();
+    }
   }
 
   function startSession() {
@@ -133,7 +183,7 @@
       .then((info) => {
         setSensorValue(info);
 
-        return session.getTimeSeriesData(sensorId, 0, 24 * 3600)
+        return session.getTimeSeriesData(sensorId, 0, 48 * 3600)
       })
       .then((info) => {
         plotTimeSeriesData(info);
@@ -146,6 +196,7 @@
   function initialize() {
     session  = new Session(WEBSOCK_URL);
     sensorId = window.location.pathname.split('/')[2];
+    now      = moment();
 
     startSession();
   }
@@ -165,6 +216,8 @@
       "/js/msgpack.min.js",
       "/js/jquery.nicescroll.min.js",
       "/js/ion.rangeSlider.min.js",
+      "/js/sprintf.min.js",
+      "/js/moment.min.js",
       "/js/plotly.min.js",
       "/js/plotly-locale-ja.js",
 

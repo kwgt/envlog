@@ -106,23 +106,12 @@ module EnvLog
               ]
 
               db.query(<<~EOQ, *args)
-                insert into DATA_TABLE
-                    values(?,
-                           datetime(?),
-                           ?,
-                           ?,
-                           ?,
-                           ?,
-                           ?,
-                           ?);
+                insert into DATA_TABLE values(?, ?, ?, ?, ?, ?, ?, ?);
               EOQ
 
               db.query(<<~EOQ, data['seq'], ts, state, id)
                 update SENSOR_TABLE
-                    set `last-seq` = ?,
-                        mtime = datetime(?),
-                        state = ?
-                    where id = ?;
+                    set `last-seq` = ?, mtime = ?, state = ? where id = ?;
               EOQ
 
               db.commit
@@ -171,7 +160,7 @@ module EnvLog
               db.transaction
 
               db.execute(<<~EOQ, ts, id)
-                update SENSOR_TABLE set mtime = datetime(?) where id = ?;
+                update SENSOR_TABLE set mtime = ? where id = ?;
               EOQ
 
               db.commit
@@ -195,8 +184,8 @@ module EnvLog
                 insert into SENSOR_TABLE
                     values (?,
                             ?,
-                            datetime(?),
-                            datetime(?),
+                            datetime('now', 'localtime'),
+                            datetime('now', 'localtime'),
                             NULL,
                             "UNKNOWN",
                             "UNKNOWN",

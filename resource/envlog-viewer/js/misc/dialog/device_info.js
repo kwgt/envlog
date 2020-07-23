@@ -99,6 +99,11 @@
         })
         .then(() => {
           this.operation = "UPDATE";
+
+          this.$modal
+            .find('div.modal-footer button.btn-primary.activate')
+              .prop("disabled", false)
+            .end();
         });
     }
 

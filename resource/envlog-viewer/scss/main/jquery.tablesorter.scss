@@ -1,0 +1,62 @@
+@charset "UTF-8";
+
+.tablesorter {
+
+  th {
+    position: relative;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  th:before,
+  th:after {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    right: 7px;
+    width: 0;
+    height: 0;
+    border: 4px dashed;
+    border-color: #ddd transparent;
+    pointer-events: none;
+  }
+
+  th:before {
+    border-bottom-style: solid;
+    border-top: none;
+    top: 30%;
+  }
+
+  th:after {
+    border-top-style: solid;
+    border-bottom: none;
+    bottom: 30%;
+  }
+
+  th.tablesorter-headerAsc:after {
+    border: none;
+  }
+
+  th.tablesorter-headerAsc:before {
+    top: 50%;
+    transform: translateY(-50%);
+    -webkit-transform: translateY(-50%);
+  }
+
+  th.tablesorter-headerDesc:before {
+    border: none;
+  }
+
+  th.tablesorter-headerDesc:after {
+    top: 50%;
+    transform: translateY(-50%);
+    -webkit-transform: translateY(-50%);
+  }
+
+  th.tablesorter-headerUnSorted:before,
+  th.tablesorter-headerUnSorted:after,
+  th.sorter-false:before,
+  th.sorter-false:after {
+    border: none;
+  }
+}

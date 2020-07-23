@@ -264,12 +264,6 @@ INPUT_DATA:
   required:
     - addr
     - seq
-    - temp
-    - hum
-    - a/p
-    - rssi
-    - vbat
-    - vbus
   properties:
     addr:
       description: >-

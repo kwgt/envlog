@@ -4,16 +4,15 @@
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
 
+#define ENABLE_LED
+
 #include <M5Atom.h>
 #include <BLEDevice.h>
 #include <ESPRandom.h>
 
-#define ENABLE_LED
+#include "../include/gateway_common.h"
 
-#define MANUFACTURER_ID     55229
-#define DATA_FORMAT_VERSION 3
-
-#define N(x)                (sizeof(x)/sizeof(*(x)))
+#define N(x)        (sizeof(x)/sizeof(*(x)))
 #define U16(p) \
       (uint16_t)((((p)[1]<<8)&0xff00)|(((p)[0]<<0)&0x00ff))
 
@@ -42,12 +41,13 @@ loop()
   int i;
   int nf;       // as Number of Found
   int ns;       // as Number of Sensor
-  int y;
 
   std::string dat;
   uint8_t* cstr;
   char addr[24];
   int seq;
+  int pos;
+  uint16_t f;
   float temp;
   float hum;
   float pres;
@@ -68,7 +68,7 @@ loop()
   }
 #endif /* defined(ENABLE_LED) */
 
-  for (i = 0, y = 33; i < nf; i++) {
+  for (i = 0, i < nf; i++) {
     dev = list.getDevice(i);
     if (!dev.haveManufacturerData()) continue;
 
@@ -83,24 +83,46 @@ loop()
     sprintf(addr, "%02x:%02x:%02x:%02x:%02x:%02x",
             cstr[4], cstr[5], cstr[6], cstr[7], cstr[8], cstr[9]);
 
-    temp = U16(cstr + 10) / 100.0;
-    hum  = U16(cstr + 12) / 100.0;
-    pres = U16(cstr + 14) / 10.0;
-    vbat = U16(cstr + 16) / 100.0;
-    vbus = U16(cstr + 18) / 100.0;
+    f    = U16(cstr + 10);
+    pos  = 12;
 
     Serial.printf("{");
-    Serial.printf("\"addr\":\"%s\",", addr);
-    Serial.printf("\"seq\":%d,",      seq);
-    Serial.printf("\"temp\":%.1f,",   temp);
-    Serial.printf("\"hum\":%.1f,",    hum);
-    Serial.printf("\"a/p\":%.0f,",    pres);
-    Serial.printf("\"rssi\":%d,",     dev.getRSSI());
-    Serial.printf("\"vbat\":%.2f,",   vbat);
-    Serial.printf("\"vbus\":%.2f",    vbus);
+    Serial.printf("\"addr\":\"%s\"", addr);
+    Serial.printf(",\"seq\":%d", seq);
+
+    if (f & F_TEMP) {
+      temp = U16(cstr + pos) / 100.0;
+      pos += 2;
+      Serial.printf(",\"temp\":%.1f", temp);
+    }
+
+    if (f & F_HUMIDITY) {
+      hum  = U16(cstr + pos) / 100.0;
+      pos += 2;
+      Serial.printf(",\"hum\":%.1f", hum);
+    }
+
+    if (f & F_AIRPRES) {
+      pres = U16(cstr + pos) / 10.0;
+      pos += 2;
+      Serial.printf(",\"a/p\":%.0f", pres);
+    }
+
+    if (f & F_VBAT) {
+      vbat = U16(cstr + pos) / 100.0;
+      pos += 2;
+      Serial.printf(",\"vbat\":%.2f", vbat);
+    }
+
+    if (f & F_VBUS) {
+      vbus = U16(cstr + pos) / 100.0;
+      pos += 2;
+      Serial.printf(",\"vbus\":%.2f", vbus);
+    }
+
+    Serial.printf(",\"rssi\":%d", dev.getRSSI());
     Serial.printf("}\r\n");
 
-    y += 45;
     ns++;
   }
 

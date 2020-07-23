@@ -8,18 +8,6 @@
 
 #define ENABLE_LED
 
-#ifdef USE_BLE
-#define MANUFACTURER_ID       55229
-#define DEVICE_NAME           "ENVLOG sensor (M5Atom)"
-#endif /* defined(USE_BLE) */
-
-#ifdef USE_WIFI
-#define AP_SSID               "XXXXXXXXXXXXXXXX"
-#define AP_PASSWD             "XXXXXXXXXXXXXXXX"
-#define SERVER_ADDR           "192.168.0.30"
-#define SERVER_PORT           1234
-#endif /* defined(USE_WIFI) */
-
 #include <M5Atom.h>
 #include <Wire.h>
 
@@ -42,12 +30,9 @@
 #include <esp_wifi.h>
 #endif /* defined(USE_WIFI) */
 
-#define DATA_FORMAT_VERSION   3
-#define T_PERIOD              1         // Transmission period
-#define S_PERIOD              119       // Sleeping period
-                             
-#define LO_BYTE(x)            (uint8_t)(((x) >> 0) & 0xff)
-#define HI_BYTE(x)            (uint8_t)(((x) >> 8) & 0xff)
+#include "../../include/sensor_common.h"
+
+#define F_VALUE     (F_TEMP | F_HUMIDITY | F_AIRPRES)
 
 #if defined(USE_BLE) && defined(USE_WIFI)
 #error "specify either USE_BLE or USE_WIFI."
@@ -56,7 +41,7 @@
 #endif /* defined(USE_BLE) && defined(USE_WIFI) */
 
 DHT12 dht12;
-Adafruit_BMP280 bme;
+Adafruit_BMP280 bmp;
 RTC_DATA_ATTR int boot_count = 0;
 RTC_DATA_ATTR uint8_t seq;
 
@@ -73,8 +58,6 @@ WiFiUDP udp;
 int16_t temp;
 uint16_t hum;
 uint16_t pres;
-uint16_t vbat;
-uint16_t vbus;
  
 #ifdef ENABLE_LED
 void
@@ -108,7 +91,7 @@ send_data()
   esp_efuse_mac_get_default(mac);
 
   data = "";
-  data += (uint8_t)21;
+  data += (uint8_t)19;
   data += (uint8_t)0xff; // AD Type 0xFF: Manufacturer specific data
   data += LO_BYTE(MANUFACTURER_ID);
   data += HI_BYTE(MANUFACTURER_ID);
@@ -120,16 +103,14 @@ send_data()
   data += mac[3];
   data += mac[4];
   data += mac[5];
+  data += LO_BYTE(F_VALUE);
+  data += HI_BYTE(F_VALUE);
   data += LO_BYTE(temp);
   data += HI_BYTE(temp);
   data += LO_BYTE(hum);
   data += HI_BYTE(hum);
   data += LO_BYTE(pres);
   data += HI_BYTE(pres);
-  data += LO_BYTE(vbat);
-  data += HI_BYTE(vbat);
-  data += LO_BYTE(vbus);
-  data += HI_BYTE(vbus);
 
   adat.addData(data);
   advertising->setAdvertisementData(adat);
@@ -151,16 +132,29 @@ stop_comm()
 void
 setup_comm()
 {
+  int i;
+
   WiFi.begin(AP_SSID, AP_PASSWD);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  for(i = 0; i < AP_RETRY_LIMIT; i++) {
+    if (WiFi.status() == WL_CONNECTED) break;
+
 #ifdef ENABLE_LED
     set_led(0x00f000);
-#endif /* defined(ENABLE_LED) */
     delay(500);
-#ifdef ENABLE_LED
     set_led(0x000000);
+    delay(500);
 #endif /* defined(ENABLE_LED) */
+
+#ifndef ENABLE_LED
+    delay(1000);
+#endif /* !defined(ENABLE_LED) */
+  }
+
+  if (i == AP_RETRY_LIMIT) {
+    // 限度数を超えて接続に失敗した場合はここでdeep sleep
+    // ※ 起床時はリセットがかかるのでここに入るとこのターンはこれで終了
+    esp_deep_sleep(S_PERIOD * 1000000);
   }
 
 #ifdef ENABLE_LED
@@ -171,23 +165,21 @@ setup_comm()
 void
 send_data()
 {
-  uint8_t buf[18];
+  uint8_t buf[16];
 
   buf[0]  = (uint8_t)DATA_FORMAT_VERSION;
   buf[1]  = (uint8_t)seq;
 
   esp_efuse_mac_get_default(buf + 2);
 
-  buf[8]  = LO_BYTE(temp);
-  buf[9]  = HI_BYTE(temp);
-  buf[10] = LO_BYTE(hum);
-  buf[11] = HI_BYTE(hum);
-  buf[12] = LO_BYTE(pres);
-  buf[13] = HI_BYTE(pres);
-  buf[14] = LO_BYTE(vbat);
-  buf[15] = HI_BYTE(vbat);
-  buf[16] = LO_BYTE(vbus);
-  buf[17] = HI_BYTE(vbus);
+  buf[8]  = LO_BYTE(F_VALUE);
+  buf[9]  = HI_BYTE(F_VALUE);
+  buf[10] = LO_BYTE(temp);
+  buf[11] = HI_BYTE(temp);
+  buf[12] = LO_BYTE(hum);
+  buf[13] = HI_BYTE(hum);
+  buf[14] = LO_BYTE(pres);
+  buf[15] = HI_BYTE(pres);
 
   udp.beginPacket(SERVER_ADDR, SERVER_PORT);
   udp.write(buf, sizeof(buf));
@@ -212,12 +204,12 @@ setup()
 
   M5.begin(false, true, led);
 
-  esp_sleep_enable_timer_wakeup(S_PERIOD * 1000000);
+  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
   setCpuFrequencyMhz(80);
 
   Wire.begin(26, 32);
 
-  while (!bme.begin(0x76)) {
+  while (!bmp.begin(0x76)) {
 #ifdef ENABLE_LED
     set_led(0x00f000);
 #endif /* defined(ENABLE_LED) */
@@ -241,12 +233,32 @@ setup()
 void
 read_sensor()
 {
-  dht12.read();
+  int n;
+
+  /*
+   * DHT12のhumidity responseは最大20sかかる。
+   * m5atomの場合は消費電力や本体温度の上昇を気にする必要が無いので真面目に
+   * 待ってみる。
+   */
+  n = 10;
+
+  while (n-- > 0) {
+#ifdef ENABLE_LED
+    set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
+
+    dht12.read();
+
+    delay(500);
+#ifdef ENABLE_LED
+    set_led(0xf0f000);
+#endif /* defined(ENABLE_LED) */
+    delay(1500);
+  }
+
   temp = (int16_t)(dht12.temperature * 100);
   hum  = (uint16_t)(dht12.humidity * 100);
-  pres = (uint16_t)(bme.readPressure() / 10);
-  vbat = (uint16_t)0;
-  vbus = (uint16_t)500;
+  pres = (uint16_t)(bmp.readPressure() / 10);
 }
 
 void
@@ -268,6 +280,5 @@ loop()
 
   stop_comm();
 
-  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
-  esp_deep_sleep(S_PERIOD * 1000000);
+  esp_deep_sleep((S_PERIOD - 20) * 1000000);
 }
