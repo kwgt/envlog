@@ -229,6 +229,29 @@ setup()
 void
 read_sensor()
 {
+  int n;
+
+	/*
+   * HTU21DFのhumidity responseは最大10sかかる。
+   * m5atomの場合は消費電力や本体温度の上昇を気にする必要が無いので真面目に
+   * 待ってみる。
+   */
+	n = 5;
+
+	while (n-- > 0) {
+#ifdef ENABLE_LED
+    set_led(0x000000);
+#endif /* defined(ENABLE_LED) */
+
+		htu.readTemperature();
+
+    delay(500);
+#ifdef ENABLE_LED
+    set_led(0xf0f000);
+#endif /* defined(ENABLE_LED) */
+    delay(1500);
+	}
+
   temp = (int16_t)(htu.readTemperature() * 100);
   hum  = (uint16_t)(htu.readHumidity() * 100);
 }
@@ -252,5 +275,6 @@ loop()
 
   stop_comm();
 
-  esp_deep_sleep(S_PERIOD * 1000000);
+	// 差し引いてる6秒はセンサーのウォームアップの時間
+  esp_deep_sleep((S_PERIOD - 10) * 1000000);
 }
