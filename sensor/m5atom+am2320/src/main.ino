@@ -4,7 +4,8 @@
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
 #undef USE_BLE
-#define USE_WIFI
+#undef USE_UDP
+#define USE_TCP
 
 #define ENABLE_LED
 
@@ -26,21 +27,28 @@
 #include <esp_bt_main.h>
 #endif /* defined(USE_BLE) */
 
-#ifdef USE_WIFI
+#if defined(USE_UDP) || defined(USE_TCP)
+#define USE_WIFI
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <esp_wifi.h>
-#endif /* defined(USE_WIFI) */
+#endif /* defined(USE_UDP) || defined(USE_TCP) */
 
 #include "../../include/sensor_common.h"
 
 #define F_VALUE         (F_TEMP | F_HUMIDITY)
 
-#if defined(USE_BLE) && defined(USE_WIFI)
-#error "specify either USE_BLE or USE_WIFI."
-#elif !defined(USE_BLE) && !defined(USE_WIFI)
-#error "specify either USE_BLE or USE_WIFI."
+#if defined(USE_TCP) && defined(USE_UDP)
+#error "both USE_TCP and USE_UDP are selected."
 #endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if defined(USE_BLE) && defined(USE_WIFI)
+#error "both USE_BLE and either USE_TCP or USE_UDP are selected."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if !defined(USE_BLE) && !defined(USE_WIFI)
+#error "output method is not selected."
+#endif /* !defined(USE_BLE) && !defined(USE_WIFI) */
 
 AM232X am2320;
 RTC_DATA_ATTR int boot_count = 0;
@@ -51,10 +59,13 @@ BLEServer* server;
 BLEAdvertising* advertising;
 #endif /* defined(USE_BLE) */
 
-#ifdef USE_WIFI
-WiFiClient client;
+#ifdef USE_TCP
+WiFiClient tcp;
+#endif /* defined(USE_TCP) */
+
+#ifdef USE_UDP
 WiFiUDP udp;
-#endif /* defined(USE_WIFI) */
+#endif /* defined(USE_UDP) */
 
 int16_t temp;
 uint16_t hum;
@@ -177,9 +188,20 @@ send_data()
   buf[12] = LO_BYTE(hum);
   buf[13] = HI_BYTE(hum);
 
+#ifdef USE_UDP
   udp.beginPacket(SERVER_ADDR, SERVER_PORT);
   udp.write(buf, sizeof(buf));
   udp.endPacket();
+  udp.flush();
+#endif /* defined(USE_UDP) */
+
+#ifdef USE_TCP
+  if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
+    tcp.write(buf, sizeof(buf));
+    tcp.flush();
+    tcp.stop();
+  }
+#endif /* defined(USE_TCP) */
 }
 
 void

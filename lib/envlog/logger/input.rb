@@ -12,8 +12,19 @@ require 'time'
 module EnvLog
   module Logger
     module InputSource
-      MONITOR_INTERVAL = 60
-      STALL_THRESHOLD  = 300
+      MONITOR_INTERVAL         = 60
+      STALL_THRESHOLD          = 300
+      SUPPORTED_FORMAT_VERSION = 4
+
+      module LocalArrayExtender
+        refine Array do
+          def shift_u16
+            lo, hi = self.shift(2)
+
+            return (((hi << 8) & 0xff00) | ((lo << 0) & 0x00ff))
+          end
+        end
+      end
 
       class Exit < Exception; end
 
@@ -33,8 +44,11 @@ module EnvLog
         attr_reader :data
       end
 
+      class NotSupported < StandardError; end
+
       class << self
         using TimeStringFormatChanger
+        using LocalArrayExtender
 
         def queue
           return @queue  ||= Thread::Queue.new
@@ -55,6 +69,44 @@ module EnvLog
           Log.info("input") {
             "sensor #{id} (#{addr}) external battery is recovered."
           }
+        end
+
+        def v4data_to_json(src)
+          ver = src.shift
+          if ver != SUPPORTED_FORMAT_VERSION
+            raise NotSupported.new("not support format version #{ver}")
+          end
+
+          ret = "{"
+
+          ret << '"seq":%s' % src.shift
+          ret << ',"addr":"%02x:%02x:%02x:%02x:%02x:%02x"' % src.shift(6)
+
+          flg = src.shift_u16
+
+          if flg.anybits?(0x0001)
+            ret << ',"temp":%.1f' % (src.shift_u16 / 100.0)
+          end
+
+          if flg.anybits?(0x0002)
+            ret << ',"hum":%.1f'  % (src.shift_u16 / 100.0)
+          end
+
+          if flg.anybits?(0x0004)
+            ret << ',"a/p":%d'    % (src.shift_u16 / 10.0).round
+          end
+
+          if flg.anybits?(0x0008)
+            ret << ',"vbat":%.2f' % (src.shift_u16 / 100.0)
+          end
+
+          if flg.anybits?(0x0010)
+            ret << ',"vbus":%.2f' % (src.shift_u16 / 100.0)
+          end
+
+          ret << "}"
+
+          return ret
         end
 
         def put_data(json)
@@ -179,6 +231,9 @@ module EnvLog
           when "udp"
             add_udp_source(src)
 
+          when "tcp"
+            add_tcp_source(src)
+
           else
             raise("unknown input source(#{src["type"]})")
           end
@@ -196,3 +251,4 @@ end
 
 require_relative "input/serial"
 require_relative "input/udp"
+require_relative "input/tcp"

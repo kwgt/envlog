@@ -138,7 +138,7 @@ CONFIG:
             additionalProperties: false
 
           - description: >-
-              入力ソースにUDPを指定する場合の設定情報を記述します。
+              入力ソースにUDPまたはTCPを指定する場合の設定情報を記述します。
             type: object
             required:
               - type
@@ -149,19 +149,21 @@ CONFIG:
                 description: >-
                   入力ソース種別を記述します
                   ※UDP力の場合は"udp"を指定
-                const: "udp"
+                type: string
+                enum:
+                  - udp
+                  - tcp
 
               bind:
                 description: >-
-                  UDPの待ち受けアドレスを指定します。
+                  待ち受けアドレスを指定します。
                   ※省略した場合は"::"で待ち受けます
                 type: string
               port:
                 description: >-
-                  UDPの待ち受けポートを指定します。
+                  待ち受けポートを指定します。
                 type: integer
             additionalProperties: false
-
       minItems: 1
 
     #
