@@ -16,39 +16,44 @@ module EnvLog
       class << self
         def add_udp_source(src)
           threads << Thread.fork {
-            addr = IPAddr.new(src[:bind] || "::")
+            begin
+              addr = IPAddr.new(src[:bind] || "::")
 
-            if addr.ipv6?
-              ep = "UDP([#{addr}]:#{src[:port]})"
-            else
-              ep = "UDP(#{addr}:#{src[:port]})"
-            end
-
-            Log.info(ep) {"add UDP input source"}
-
-            sock = UDPSocket.open(addr.family)
-            sock.bind(addr.to_s, src[:port])
-
-            loop {
-              begin
-                json = v4data_to_json(sock.recv(1024).bytes)
-                Log.debug(ep) {"receive: #{json.dump}"}
-
-                put_data(json)
-
-              rescue Exit
-                break
-
-              rescue NotSupported => e
-                Log.debug(ep) {e.message}
-
-              rescue => e
-                Log.error(ep) {"error occurred (#{e.message})"}
+              if addr.ipv6?
+                ep = "UDP([#{addr}]:#{src[:port]})"
+              else
+                ep = "UDP(#{addr}:#{src[:port]})"
               end
-            }
 
-            sock.close
-            Log.info(ep) {"exit UDP input thread"}
+              Log.info(ep) {"add UDP input source"}
+
+              sock = UDPSocket.open(addr.family)
+              sock.bind(addr.to_s, src[:port])
+
+              loop {
+                begin
+                  data = unpack_v4_data(sock.recv(1024).bytes)
+                  Log.debug(ep) {"receive: #{data}"}
+
+                  put_data(data)
+
+                rescue NotSupported => e
+                  Log.error(ep) {e.message}
+
+                rescue InvalidData => e
+                  Log.error(ep) {"rejected invalid data #{e.data}"}
+
+                rescue => e
+                  Log.error(ep) {"error occurred (#{e.message})"}
+                end
+              }
+
+            rescue Exit
+              Log.info(ep) {"exit UDP input thread"}
+
+            ensure
+              sock&.close if defined?(sock)
+            end
           }
         end
         private :add_udp_source

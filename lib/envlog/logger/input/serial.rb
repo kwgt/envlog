@@ -26,15 +26,16 @@ module EnvLog
             loop {
               begin
                 json = port.gets
-                Log.debug(tty) {"receive: #{json.dump}"}
+                data = JSON.parse(json)
+                Log.debug(tty) {"receive: #{data}"}
 
-                put_data(json)
+                put_data(data)
 
               rescue JSON::ParserError => e
                 Log.error(tty) {"invalid json #{e.json.dump}"}
 
               rescue InvalidData => e
-                Log.error(tty) {"rejected #{e.data.inspect}"}
+                Log.error(tty) {"rejected invalid data #{e.data}"}
 
               rescue Exit
                 break

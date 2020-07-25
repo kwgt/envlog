@@ -17,6 +17,10 @@ module EnvLog
         InputSource.run
       end
 
+      def stop
+        InputSource.stop
+      end
+
       def list_device
         list = Database.list_device
 

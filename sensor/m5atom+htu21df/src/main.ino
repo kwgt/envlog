@@ -199,7 +199,13 @@ send_data()
   if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
     tcp.write(buf, sizeof(buf));
     tcp.flush();
+    delay(100);
     tcp.stop();
+
+#ifdef ENABLE_LED
+  }  else {
+    set_led(0x808000);
+#endif /* defined(ENABLE_LED) */
   }
 #endif /* defined(USE_TCP) */
 }
@@ -243,8 +249,6 @@ setup()
   set_led(0x000000);
 #endif /* defined(ENABLE_LED) */
 
-  setup_comm();
-
   boot_count++;
 }
 
@@ -282,6 +286,7 @@ void
 loop()
 {
   read_sensor();
+  setup_comm();
 
 #ifdef ENABLE_LED
   set_led(0xf00000);

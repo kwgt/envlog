@@ -150,13 +150,13 @@ setup_comm()
 
 #ifdef ENABLE_LED
     set_led(0x00f000);
-    delay(500);
+    delay(1500);
     set_led(0x000000);
     delay(500);
 #endif /* defined(ENABLE_LED) */
 
 #ifndef ENABLE_LED
-    delay(1000);
+    delay(2000);
 #endif /* !defined(ENABLE_LED) */
   }
 
@@ -199,6 +199,7 @@ send_data()
   if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
     tcp.write(buf, sizeof(buf));
     tcp.flush();
+    delay(100);
     tcp.stop();
   }
 #endif /* defined(USE_TCP) */
