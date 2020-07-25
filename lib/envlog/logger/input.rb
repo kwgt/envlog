@@ -71,59 +71,52 @@ module EnvLog
           }
         end
 
-        def v4data_to_json(src)
+        def unpack_v4_data(src)
           ver = src.shift
           if ver != SUPPORTED_FORMAT_VERSION
             raise NotSupported.new("not support format version #{ver}")
           end
 
-          ret = "{"
-
-          ret << '"seq":%s' % src.shift
-          ret << ',"addr":"%02x:%02x:%02x:%02x:%02x:%02x"' % src.shift(6)
+          ret = {
+            "seq":  src.shift,
+            "addr": "%02x:%02x:%02x:%02x:%02x:%02x" % src.shift(6)
+          }
 
           flg = src.shift_u16
 
           if flg.anybits?(0x0001)
-            ret << ',"temp":%.1f' % (src.shift_u16 / 100.0)
+            ret["temp"] = src.shift_u16 / 100.0
           end
 
           if flg.anybits?(0x0002)
-            ret << ',"hum":%.1f'  % (src.shift_u16 / 100.0)
+            ret["hum"]  = src.shift_u16 / 100.0
           end
 
           if flg.anybits?(0x0004)
-            ret << ',"a/p":%d'    % (src.shift_u16 / 10.0).round
+            ret["a/p"]  = (src.shift_u16 / 10.0).round
           end
 
           if flg.anybits?(0x0008)
-            ret << ',"vbat":%.2f' % (src.shift_u16 / 100.0)
+            ret["vbat"] = src.shift_u16 / 100.0
           end
 
           if flg.anybits?(0x0010)
-            ret << ',"vbus":%.2f' % (src.shift_u16 / 100.0)
+            ret["vbus"] = src.shift_u16 / 100.0
           end
-
-          ret << "}"
 
           return ret
         end
 
-        def put_data(json)
-          data = JSON.parse(json)
-          raise InvalidData.new(data) if not Schema.valid?(:INPUT_DATA, data)
+        def put_data(data)
+          if not Schema.valid?(:INPUT_DATA, data)
+            raise InvalidData.new(data)
+          end
 
           # データベースへの登録に時間がかかり、処理が遅延する場合が
           # あったのでスレッドを分離し非同期処理に変更した。
           # 登録処理本体はentry_threadで行なっている。
           queue << Time.now.to_s
           queue << data
-
-        rescue InvalidData
-          Log.error("input") {"invalid data received, ignore"}
-
-        rescue JSON::ParserError
-          Log.error("input") {"broken data received, ignore"}
         end
         private :put_data
 
@@ -243,6 +236,10 @@ module EnvLog
           threads << Thread.fork {monitor_thread()}
           threads << Thread.fork {entry_thread()}
           threads.each {|thread| thread.join}
+        end
+
+        def stop
+          threads.each {|thread| thread.raise(Exit)}
         end
       end
     end

@@ -29,6 +29,7 @@
 #define AP_RETRY_LIMIT        10
 #define SERVER_ADDR           "192.168.0.30"
 #define SERVER_PORT           1234
+#define CONNECT_TIMEOUT       10000
 
 /*
  * period
