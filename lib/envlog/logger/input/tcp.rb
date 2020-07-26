@@ -31,7 +31,7 @@ module EnvLog
               set     = [serv]
               map     = {}
               fd_list = -> (a) {a.map {|v| v.to_i}}
-              reject  = -> (s) {s.close; set.delete(s); map.delete(s.to_i)}
+              reject  = -> (s) {s.close; set.delete(s); map.delete(s)}
 
               loop {
                 Log.debug(ep) {"select #{fd_list.(set)}"}
@@ -57,12 +57,7 @@ module EnvLog
 
                     else
                       begin
-                        begin
-                          src = sock.readpartial(128).bytes
-                        ensure
-                          reject.(sock)
-                        end
-
+                        src  = sock.readpartial(128).bytes
                         data = unpack_v4_data(src)
                         Log.debug(ep) {"receive #{sock.to_i} #{data}"}
 
@@ -76,6 +71,9 @@ module EnvLog
 
                       rescue => e
                         Log.error(ep) {"error occurred (#{e.message})"}
+
+                      ensure
+                        reject.(sock)
                       end
                     end
                   }
@@ -84,7 +82,7 @@ module EnvLog
                   # for exception occurred sockets
                   #
                   rdy[2].each {|sock|
-                    Log.debug("excepted #{sock.to_i}")
+                    Log.debug(ep) {"excepted #{sock.to_i}"}
                     reject.(sock)
                   }
                 end
@@ -95,7 +93,7 @@ module EnvLog
                 now = Time.now
                 map.keys.each { |sock|
                   if now - map[sock] > 10
-                    Log(ep) {"force close #{sock.to_i}"}
+                    Log.debug(ep) {"force close #{sock.to_i}"}
                     reject.(sock)
                   end
                 }
@@ -106,7 +104,6 @@ module EnvLog
 
             rescue => e
               Log.error(ep) {"error occurred (#{e.message})"}
-              pp e.backtrace
 
             ensure
               set&.each {|sock| sock.close} if defined?(set)
