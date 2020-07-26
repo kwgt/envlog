@@ -78,8 +78,8 @@ module EnvLog
           end
 
           ret = {
-            "seq":  src.shift,
-            "addr": "%02x:%02x:%02x:%02x:%02x:%02x" % src.shift(6)
+            "seq"  =>  src.shift,
+            "addr" => "%02x:%02x:%02x:%02x:%02x:%02x" % src.shift(6)
           }
 
           flg = src.shift_u16
