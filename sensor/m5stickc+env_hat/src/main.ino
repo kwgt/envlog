@@ -203,7 +203,11 @@ send_data()
   if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
     tcp.write(buf, sizeof(buf));
     tcp.flush();
-    delay(100);
+
+    while (tcp.connected()) {
+      delay(50);
+    }
+    
     tcp.stop();
   }
 #endif /* defined(USE_TCP) */

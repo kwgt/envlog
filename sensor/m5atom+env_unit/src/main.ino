@@ -70,6 +70,17 @@ int16_t temp;
 uint16_t hum;
 uint16_t pres;
  
+void
+into_sleep()
+{
+  int64_t t;
+
+  t = (S_PERIOD * 1000000) - micros();
+  if (t < 10000000) t = 10000000; 
+
+  esp_deep_sleep(t);
+}
+ 
 #ifdef ENABLE_LED
 void
 set_led(CRGB c)
@@ -165,7 +176,7 @@ setup_comm()
   if (i == AP_RETRY_LIMIT) {
     // 限度数を超えて接続に失敗した場合はここでdeep sleep
     // ※ 起床時はリセットがかかるのでここに入るとこのターンはこれで終了
-    esp_deep_sleep(S_PERIOD * 1000000);
+    into_sleep();
   }
 
 #ifdef ENABLE_LED
@@ -203,7 +214,11 @@ send_data()
   if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
     tcp.write(buf, sizeof(buf));
     tcp.flush();
-    delay(100);
+
+    while (tcp.connected()) {
+      delay(50);
+    }
+    
     tcp.stop();
 
 #ifdef ENABLE_LED
@@ -308,5 +323,5 @@ loop()
 
   stop_comm();
 
-  esp_deep_sleep((S_PERIOD - 20) * 1000000);
+  into_sleep();
 }
