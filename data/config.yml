@@ -22,9 +22,13 @@ source:
     baud:      115200
     data_bits: 8
 
-  - type:      udp
-    bind:      "::"
-    port:      1234
+#  - type:      udp
+#    bind:      "::"
+#    port:      1234
+
+#  - type:      tcp
+#    bind:      "::"
+#    port:      1234
 
 #
 # viewerのwebサーバの設定

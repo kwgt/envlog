@@ -136,7 +136,7 @@ loop()
       M5.Lcd.setCursor(30, y + yo, 1);
       M5.Lcd.print(str);
 
-      Serial.printf(",\"a/p\":%.0f", pres);
+      Serial.printf(",\"a/p\":%.1f", pres);
 
       pos += 2;
       yo  += 10;

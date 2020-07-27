@@ -46,7 +46,7 @@
   }
 
   function formatValue(fmt, val) {
-    return ((val)? sprintf(fmt, val): NONE_VALUE_STRING);
+    return ((_.isNil(val))? NONE_VALUE_STRING: sprintf(fmt, val));
   }
 
   function stringifyValues(src) {
@@ -58,7 +58,7 @@
       ret = {
         "temp": formatValue("%4.1f", src["temp"]),
         "hum":  formatValue("%4.1f", src["hum"]),
-        "a/p":  formatValue("%4d",   src["a/p"]),
+        "a/p":  formatValue("%4.0f", src["a/p"]),
         "vbat": formatValue("%4.2f", src["vbat"]),
         "vbus": formatValue("%4.2f", src["vbus"]),
       };

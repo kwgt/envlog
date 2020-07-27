@@ -4,8 +4,9 @@
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
 
-#define USE_BLE
-#undef USE_WIFI
+#undef USE_BLE
+#undef USE_UDP
+#define USE_TCP
 
 #undef ENABLE_LCD
 #define ENABLE_LED
@@ -26,15 +27,28 @@
 #include <esp_bt_main.h>
 #endif /* defined(USE_BLE) */
 
-#ifdef USE_WIFI
+#if defined(USE_UDP) || defined(USE_TCP)
+#define USE_WIFI
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <esp_wifi.h>
-#endif /* defined(USE_WIFI) */
+#endif /* defined(USE_UDP) || defined(USE_TCP) */
 
 #include "../../include/sensor_common.h"
 
 #define F_VALUE          (F_TEMP | F_HUMIDITY | F_AIRPRES | F_VBAT | F_VBUS)
+
+#if defined(USE_TCP) && defined(USE_UDP)
+#error "both USE_TCP and USE_UDP are selected."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if defined(USE_BLE) && defined(USE_WIFI)
+#error "both USE_BLE and either USE_TCP or USE_UDP are selected."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if !defined(USE_BLE) && !defined(USE_WIFI)
+#error "output method is not selected."
+#endif /* !defined(USE_BLE) && !defined(USE_WIFI) */
  
 #define M5STICK_PIN_LED  10
 
@@ -48,10 +62,13 @@ BLEServer* server;
 BLEAdvertising* advertising;
 #endif /* defined(USE_BLE) */
 
-#ifdef USE_WIFI
-WiFiClient client;
+#ifdef USE_TCP
+WiFiClient tcp;
+#endif /* defined(USE_TCP) */
+
+#ifdef USE_UDP
 WiFiUDP udp;
-#endif /* defined(USE_WIFI) */
+#endif /* defined(USE_UDP) */
 
 int16_t temp;
 uint16_t hum;
@@ -175,9 +192,25 @@ send_data()
   buf[18] = LO_BYTE(vbus);
   buf[19] = HI_BYTE(vbus);
 
+#ifdef USE_UDP
   udp.beginPacket(SERVER_ADDR, SERVER_PORT);
   udp.write(buf, sizeof(buf));
   udp.endPacket();
+  udp.flush();
+#endif /* defined(USE_UDP) */
+
+#ifdef USE_TCP
+  if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
+    tcp.write(buf, sizeof(buf));
+    tcp.flush();
+
+    while (tcp.connected()) {
+      delay(50);
+    }
+    
+    tcp.stop();
+  }
+#endif /* defined(USE_TCP) */
 }
 
 void

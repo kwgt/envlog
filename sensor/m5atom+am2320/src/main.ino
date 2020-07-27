@@ -4,7 +4,8 @@
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
 #undef USE_BLE
-#define USE_WIFI
+#undef USE_UDP
+#define USE_TCP
 
 #define ENABLE_LED
 
@@ -26,21 +27,28 @@
 #include <esp_bt_main.h>
 #endif /* defined(USE_BLE) */
 
-#ifdef USE_WIFI
+#if defined(USE_UDP) || defined(USE_TCP)
+#define USE_WIFI
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <esp_wifi.h>
-#endif /* defined(USE_WIFI) */
+#endif /* defined(USE_UDP) || defined(USE_TCP) */
 
 #include "../../include/sensor_common.h"
 
 #define F_VALUE         (F_TEMP | F_HUMIDITY)
 
-#if defined(USE_BLE) && defined(USE_WIFI)
-#error "specify either USE_BLE or USE_WIFI."
-#elif !defined(USE_BLE) && !defined(USE_WIFI)
-#error "specify either USE_BLE or USE_WIFI."
+#if defined(USE_TCP) && defined(USE_UDP)
+#error "both USE_TCP and USE_UDP are selected."
 #endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if defined(USE_BLE) && defined(USE_WIFI)
+#error "both USE_BLE and either USE_TCP or USE_UDP are selected."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if !defined(USE_BLE) && !defined(USE_WIFI)
+#error "output method is not selected."
+#endif /* !defined(USE_BLE) && !defined(USE_WIFI) */
 
 AM232X am2320;
 RTC_DATA_ATTR int boot_count = 0;
@@ -51,13 +59,27 @@ BLEServer* server;
 BLEAdvertising* advertising;
 #endif /* defined(USE_BLE) */
 
-#ifdef USE_WIFI
-WiFiClient client;
+#ifdef USE_TCP
+WiFiClient tcp;
+#endif /* defined(USE_TCP) */
+
+#ifdef USE_UDP
 WiFiUDP udp;
-#endif /* defined(USE_WIFI) */
+#endif /* defined(USE_UDP) */
 
 int16_t temp;
 uint16_t hum;
+
+void
+into_sleep()
+{
+  int64_t t;
+
+  t = (S_PERIOD * 1000000) - micros();
+  if (t < 10000000) t = 10000000; 
+
+  esp_deep_sleep(t);
+}
  
 #ifdef ENABLE_LED
 void
@@ -139,20 +161,20 @@ setup_comm()
 
 #ifdef ENABLE_LED
     set_led(0x00f000);
-    delay(500);
+    delay(1500);
     set_led(0x000000);
     delay(500);
 #endif /* defined(ENABLE_LED) */
 
 #ifndef ENABLE_LED
-    delay(1000);
+    delay(2000);
 #endif /* !defined(ENABLE_LED) */
   }
 
   if (i == AP_RETRY_LIMIT) {
     // 限度数を超えて接続に失敗した場合はここでdeep sleep
     // ※起床時はリセットがかかるのでここに入るとこのターンはこれで終了
-    esp_deep_sleep(S_PERIOD * 1000000);
+    into_sleep();
   }
 
 #ifdef ENABLE_LED
@@ -177,9 +199,25 @@ send_data()
   buf[12] = LO_BYTE(hum);
   buf[13] = HI_BYTE(hum);
 
+#ifdef USE_UDP
   udp.beginPacket(SERVER_ADDR, SERVER_PORT);
   udp.write(buf, sizeof(buf));
   udp.endPacket();
+  udp.flush();
+#endif /* defined(USE_UDP) */
+
+#ifdef USE_TCP
+  if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
+    tcp.write(buf, sizeof(buf));
+    tcp.flush();
+
+    while (tcp.connected()) {
+      delay(50);
+    }
+    
+    tcp.stop();
+  }
+#endif /* defined(USE_TCP) */
 }
 
 void
@@ -268,6 +306,5 @@ loop()
 
   stop_comm();
 
-  // 差し引いてる6秒はセンサーのウォームアップの時間
-  esp_deep_sleep((S_PERIOD - 6) * 1000000);
+  into_sleep();
 }

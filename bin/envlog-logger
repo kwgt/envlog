@@ -118,6 +118,8 @@ begin
     EnvLog::Logger.remove_device($remove_device)
 
   else
+    Signal.trap(:INT) {EnvLog::Logger.stop}
+    Signal.trap(:TERM) {EnvLog::Logger.stop}
     EnvLog::Logger.start
   end
 
