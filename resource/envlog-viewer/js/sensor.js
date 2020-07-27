@@ -25,7 +25,8 @@
     }
 
     if (info["a/p"]) {
-      $('div#air-pressure > div.value > span.number').text(info["a/p"]);
+      $('div#air-pressure > div.value > span.number')
+        .text(sprintf("%.0f", info["a/p"]));
     } else {
       $('div#air-pressure').remove();
     }

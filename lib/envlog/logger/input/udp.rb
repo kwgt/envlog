@@ -65,7 +65,7 @@ module EnvLog
                 end
 
                 if flg.anybits?(0x0004)
-                  json << ',"a/p":%d' % (src.shift_u16 / 10.0).round
+                  json << ',"a/p":%d' % src.shift_u16 / 10.0
                 end
 
                 if flg.anybits?(0x0008)
