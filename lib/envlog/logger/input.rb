@@ -93,7 +93,7 @@ module EnvLog
           end
 
           if flg.anybits?(0x0004)
-            ret["a/p"]  = (src.shift_u16 / 10.0).round
+            ret["a/p"]  = src.shift_u16 /  10.0
           end
 
           if flg.anybits?(0x0008)

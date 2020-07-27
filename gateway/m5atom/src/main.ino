@@ -105,7 +105,7 @@ loop()
     if (f & F_AIRPRES) {
       pres = U16(cstr + pos) / 10.0;
       pos += 2;
-      Serial.printf(",\"a/p\":%.0f", pres);
+      Serial.printf(",\"a/p\":%.1f", pres);
     }
 
     if (f & F_VBAT) {

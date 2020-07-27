@@ -297,7 +297,7 @@ INPUT_DATA:
       description: >-
         気圧データ(hPa)で格納されます。
         ※現時点ではBME280の計測範囲を受け付けます
-      type: integer
+      type: number
       minimum: 300
       maximum: 1100
 
