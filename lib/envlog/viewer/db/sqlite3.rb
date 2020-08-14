@@ -8,6 +8,7 @@
 #
 
 require 'sqlite3'
+require 'date'
 
 module EnvLog
   module Viewer
@@ -123,12 +124,13 @@ module EnvLog
       def get_time_series_data(id, tm, span)
         if tm.zero?
           rows = @db.execute2(<<~EOQ, id, "now")
-            select time, temp, humidity, `air-pres` from DATA_TABLE
+            select time, temp, humidity, `air-pres`
+                from DATA_TABLE
                 where sensor = ? and
                       time >= datetime(?, "-#{span} seconds");
           EOQ
         else
-          rows = @db.execute2(<<~EOQ, id, tm, tm)
+          rows = @db.execute2(<<~EOQ, id, tm)
             select datetime(time, 'localtime'),
                    temp, humidity, `air-pres`
                 from DATA_TABLE
@@ -146,6 +148,149 @@ module EnvLog
 
         return {:time => row0, :temp => row1, :hum => row2, :"a/p" => row3}
       end
+
+      def get_abstracted_hour_data(id, tm, span)
+        date  = Date.parse(tm)
+        head  = (date - (span - 1)).strftime("%Y-%m-%d")
+        tail  = date.strftime("%Y-%m-%d")
+
+        rows1 = @db.execute(<<~EOQ, id, head, tail)
+          select strftime("%Y-%m-%d %H:00:00", time) as hour,
+                 avg(temp), avg(humidity), avg(`air-pres`)
+              from DATA_TABLE
+              where sensor = ? and
+                    (strftime("%Y-%m-%d", time) between ? and ?)
+              group by hour order by hour;
+        EOQ
+
+        rows2 = @db.execute(<<~EOQ, id, head, tail)
+          select strftime("%Y-%m-%d", time) as day,
+                 min(temp), max(temp),
+                 min(humidity), max(humidity),
+                 min(`air-pres`), max(`air-pres`)
+              from DATA_TABLE
+              where sensor = ? and
+                    (day between ? and ?)
+              group by day order by day;
+        EOQ
+
+        time = rows1.inject([]) {|m, n| m << n[0]}
+        date = rows2.inject([]) {|m, n| m << n[0]}
+
+        if rows1.first and rows1.first[1]
+          temp = {:min => [], :max => [], :avg => []}
+
+          rows1.each { |row|
+            temp[:avg] << row[1]
+          }
+
+          rows2.each { |row|
+            temp[:min] << row[1]
+            temp[:max] << row[2]
+          }
+
+        else
+          temp = nil
+        end
+
+        if rows1.first and rows1.first[2]
+          hum = {:min => [], :max => [], :avg => []}
+
+          rows1.each { |row|
+            hum[:avg] << row[2]
+          }
+
+          rows2.each { |row|
+            hum[:min] << row[3]
+            hum[:max] << row[4]
+          }
+
+        else
+          hum = nil
+        end
+
+        if rows1.first and rows1.first[3]
+          pres = {:min => [], :max => [], :avg => []}
+
+          rows1.each { |row|
+            pres[:avg] << row[3]
+          }
+
+          rows2.each { |row|
+            pres[:min] << row[5]
+            pres[:max] << row[6]
+          }
+
+        else
+          pres = nil
+        end
+
+        ret = {
+          :time  => time,
+          :date  => date,
+          :temp  => temp,
+          :hum   => hum,
+          :"a/p" => pres
+        }
+
+        return ret
+      end
+
+      def get_abstracted_day_data(id, tm, span)
+        date = Date.parse(tm)
+        head = (date - (span - 1)).strftime("%Y-%m-%d")
+        tail = date.strftime("%Y-%m-%d")
+
+        rows = @db.execute(<<~EOQ, id, head, tail)
+          select strftime("%Y-%m-%d", time) as day,
+                 min(temp), max(temp), avg(temp),
+                 min(humidity), max(humidity), avg(humidity),
+                 min(`air-pres`), max(`air-pres`), avg(`air-pres`)
+              from DATA_TABLE where sensor = ? and (day between ? and ?)
+              group by day order by day;
+        EOQ
+
+        time = rows.inject([]) {|m, n| m << n[0]}
+
+        if rows.first and rows.first[1]
+          temp = {:min => [], :max => [], :avg => []}
+          rows.each { |row|
+            temp[:min] << row[1]
+            temp[:max] << row[2]
+            temp[:avg] << row[3]
+          }
+
+        else
+          temp = nil
+        end
+
+        if rows.first and rows.first[4]
+          hum = {:min => [], :max => [], :avg => []}
+          rows.each { |row|
+            hum[:min] << row[4]
+            hum[:max] << row[5]
+            hum[:avg] << row[6]
+          }
+
+        else
+          hum = nil
+        end
+
+        if rows.first and rows.first[7]
+          pres = {:min => [], :max => [], :avg => []}
+          rows.each { |row|
+            pres[:min] << row[7]
+            pres[:max] << row[8]
+            pres[:avg] << row[9]
+          }
+
+        else
+          pres = nil
+        end
+
+        return {:date => time, :temp => temp, :hum => hum, :"a/p" => pres}
+      end
+
 
       def poll_sensor
         rows = @db.execute(<<~EOQ)
