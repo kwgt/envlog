@@ -388,15 +388,15 @@ module EnvLog
       # 指定されたセンサーの時系列データを取得する
       #
       # @param [String] id  センサーのID
-      # @param [Integer] tm  データ取得を開始する時刻情報(UNIX時刻)
+      # @param [String] tm  データ取得を開始する時刻情報(文字列)
       # @param [Integer] span  データ取得を行う期間(秒)
       #
       # @return [Hash] 計測値を格納したHash
       #
       # @note
-      #   本APIではtmからspanの間の時系列情報を取得する。tmに0を指定した
-      #   場合は例外的に、最新のデータから過去に遡ってspanの期間分のデー
-      #   タを取得します。
+      #   本APIではtmから過去に遡ってspanの間の時系列情報を取得する。
+      #   tmに"now"を指定した場合は、最新のデータから過去に遡ってspanの
+      #   期間分のデータを取得します。
       #
       def get_time_series_data(df, id, tm, span)
         EM.defer {
@@ -558,6 +558,106 @@ module EnvLog
         }
       end
       remote_async :remove_device
+
+      #
+      # 週間表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは週間グラフ作成の用のデータをtmから過去に遡って
+      #   二週間分取得します
+      #
+      def get_week_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_hour_data(id, tm, 14))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_week_data
+
+      #
+      # 月間表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは月間グラフ作成の用のデータをtmから過去に遡って
+      #   30日分取得します
+      #
+      def get_month_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_hour_data(id, tm, 30))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_month_data
+
+      #
+      # 三ヶ月表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは三ヶ月グラフ作成の用のデータをtmから過去に遡って
+      #   90日分取得します
+      #
+      def get_season_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_day_data(id, tm, 90))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_season_data
+
+      #
+      # 年間表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは月間グラフ作成の用のデータをtmから過去に遡って
+      #   365日分取得します
+      #
+      def get_year_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_day_data(id, tm, 365))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_year_data
     end
   end
 end

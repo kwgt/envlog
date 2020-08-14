@@ -37,7 +37,7 @@ class TestViewerDBAFunc < Test::Unit::TestCase
   def check(key, data)
     sch = JSONSchemer.schema(@@schema[key])
     #pp data
-    #pp sch.validate(data).to_a
+    #pp sch.validate(data.stringify_keys).to_a
     return sch.valid?(data.stringify_keys)
   end
 
@@ -68,6 +68,32 @@ class TestViewerDBAFunc < Test::Unit::TestCase
     #
     assert_raise_kind_of(EnvLog::Viewer::DBA::DeviceNotFound) {
       @db.get_sensor_info("000000000000");
+    }
+  end
+
+  #
+  # get_abstracted_hour_data()
+  #
+  test "call get_abstracted_hour_data()" do
+    ids = @db.poll_sensor.keys
+    ids.each { |id|
+      info = assert_nothing_raised {
+        @db.get_abstracted_hour_data(id, "2020-08-11", 7)
+      }
+      assert_true(check("RESULT(get_abstracted_hour_data)", info))
+    }
+  end
+
+  #
+  # get_abstracted_day_data()
+  #
+  test "call get_abstracted_day_data()" do
+    ids = @db.poll_sensor.keys
+    ids.each { |id|
+      info = assert_nothing_raised {
+        @db.get_abstracted_day_data(id, "2020-08-11", 7)
+      }
+      assert_true(check("RESULT(get_abstracted_day_data)", info))
     }
   end
 end
