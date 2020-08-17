@@ -48,4 +48,26 @@ class TestViewerDBAFunc < Test::Unit::TestCase
     res = @db.poll_sensor
     assert_true(check("RESULT(poll_sensor)", res))
   end
+
+  #
+  # get_sensor_info()
+  #
+  test "call get_sensor_info()" do
+    #
+    # normal test
+    #
+    ids = @db.poll_sensor.keys 
+
+    ids.each { |id|
+      info = assert_nothing_raised {@db.get_sensor_info(id)}
+      assert_true(check("RESULT(get_sensor_info)", info))
+    }
+
+    #
+    # error test
+    #
+    assert_raise_kind_of(EnvLog::Viewer::DBA::DeviceNotFound) {
+      @db.get_sensor_info("000000000000");
+    }
+  end
 end

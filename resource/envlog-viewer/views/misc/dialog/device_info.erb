@@ -1,0 +1,117 @@
+<%
+  #
+  # Environemnt data logger
+  #
+  #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+  #
+%>
+
+<div id="device-info-dialog" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          DEVICE INFO
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="device-address" class="col-form-label">
+              Address
+            </label>
+            <input id="device-address"
+                type="text" readonly class="col form-control-plaintext"
+								data-toggle="tooltip" title="cannot be change.">
+            </input>
+          </div>
+
+          <div class="form-group">
+            <label for="device-ctime" class="col-form-label">
+              Registration date
+            </label>
+            <input id="device-ctime"
+                type="text" readonly class="col form-control-plaintext"
+								data-toggle="tooltip" title="cannot be change.">
+            </input>
+          </div>
+
+          <div class="form-group">
+            <label for="device-state" class="col-form-label">
+              State
+            </label>
+            <input id="device-state"
+                type="text" readonly class="col form-control-plaintext"
+								data-toggle="tooltip" title="cannot be change.">
+            </input>
+          </div>
+
+          <div class="form-group">
+            <label for="device-description" class="col-form-label">
+              Description
+            </label>
+            <input id="device-description"
+                type="text" class="col form-control-plaintext">
+            </input>
+          </div>
+
+          <div class="form-group">
+            <label for="device-power-source" class="col-form-label">
+              External power source
+            </label>
+            <div class="dropdown dropup dropright">
+              <button id="device-power-source"
+                  class="btn btn-transparent dropdown-toggle"
+                  type="button" data-toggle="dropdown"
+                  aria-haspopup="true" aria-expanded="false">
+              </button>
+              <div id="device-power-source-menu"
+                  class="dropdown-menu" aria-labelledby="device-power-source">
+                <a class="dropdown-item" data-value="STABLE" href="#">
+                  STABLE
+                </a>
+                <a class="dropdown-item" data-value="BATTERY" href="#">
+                  BATTERY
+                </a>
+                <a class="dropdown-item" data-value="NONE" href="#">
+                  NONE
+                </a>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-danger mr-auto">
+          <span><%= render_icon("trash") %></span>
+          REMOVE
+        </button>
+
+        <button type="button" class="btn btn-primary activate">
+          <span><%= render_icon("power") %></span>
+          ACTIVATE
+        </button>
+
+        <button type="button" class="btn btn-primary pause">
+          <span><%= render_icon("pause-fill") %></span>
+          PAUSE
+        </button>
+
+        <button type="button" class="btn btn-primary resume">
+          <span><%= render_icon("play-fill") %></span>
+          RESUME
+        </button>
+
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <span><%= render_icon("x-circle") %></span>
+          CLOSE
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

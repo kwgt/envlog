@@ -6,9 +6,9 @@ database:
   #  path:     ~/lib/envlog.db
 
   mysql:
-    host:     db3.local
+    host:     192.168.0.39
     username: envlog
-    password: S1H9-P64A-KUO6
+    password: 1EL6-CWNO-Q0LA
     database: envlog.db
     encoding: utf8
 
@@ -47,7 +47,7 @@ webserver:
 # ログ出力設定
 #
 log:
-  file:        log.txt
+  file:        log/log.txt
   shift_age:   weekly
   shift_size:  100_000
   level:       INFO

@@ -9,7 +9,6 @@
 
 require 'mysql2'
 require "#{LIB_DIR}/mysql2"
-require "#{LIB_DIR}/db/mysql2"
 
 module EnvLog
   module Viewer
@@ -88,6 +87,8 @@ module EnvLog
           select state, mtime from SENSOR_TABLE where id = "#{id}";
         EOQ
 
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
         if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "PAUSE"
           ret  = {
             :time  => row[1].to_s,
@@ -134,16 +135,12 @@ module EnvLog
           EOQ
         end
 
-        ret = {:time => [], :temp => [], :hum => [], :"a/p" => []}
+        row0 = rows.inject([]) {|m, n| m << n[0].to_s}
+        row1 = (rows.first[1])? (rows.inject([]) {|m, n| m << n[1]}): nil
+        row2 = (rows.first[2])? (rows.inject([]) {|m, n| m << n[2]}): nil
+        row3 = (rows.first[3])? (rows.inject([]) {|m, n| m << n[3]}): nil
 
-        rows.each { |row|
-          ret[:time]  << row[0].to_s
-          ret[:temp]  << row[1]
-          ret[:hum]   << row[2]
-          ret[:"a/p"] << row[3]
-        }
-
-        return ret
+        return {:time => row0, :temp => row1, :hum => row2, :"a/p" => row3}
       end
 
       def poll_sensor
@@ -152,6 +149,25 @@ module EnvLog
         EOQ
 
         return rows.inject({}) {|m, n| m[n[0]] = n[1].to_s; m}
+      end
+
+      def get_sensor_info(id)
+        row = @db.get_first_row(<<~EOQ, :as => :array)
+          select addr, ctime, descr, `pow-source`, state
+              from SENSOR_TABLE where id = "#{id}";
+        EOQ
+
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
+        ret = {
+          :addr  => row[0],
+          :ctime => row[1].to_s,
+          :descr => row[2],
+          :psrc  => row[3],
+          :state => row[4],
+        }
+
+        return ret
       end
     end
   end

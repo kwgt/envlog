@@ -1,0 +1,41 @@
+<%
+  #
+  # Environemnt data logger
+  #
+  #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+  #
+%>
+
+<div id="confirm-modal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <span class="text-white">
+            <%= render_icon("question-circle-fill") %>
+          </span>
+          <span id="header-text"></span>
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p id="confirm-text"></p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">
+          <span><%= render_icon("exclamation-circle") %></span>
+          <span id="yes-label"></span>
+        </button>
+
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <span><%= render_icon("x-circle") %></span>
+          <span id="no-label"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

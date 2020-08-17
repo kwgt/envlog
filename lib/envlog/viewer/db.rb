@@ -11,6 +11,14 @@
 # config.ymlのスキーマ定義によりどちらかしか設定できないことが前提
 #
 
+module EnvLog
+  module Viewer
+    class DBA
+      class DeviceNotFound < StandardError; end
+    end
+  end
+end
+
 case
 when EnvLog::Config.has?(:database, :sqlite3)
   require_relative "db/sqlite3"

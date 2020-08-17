@@ -12,8 +12,19 @@ require 'time'
 module EnvLog
   module Logger
     module InputSource
-      MONITOR_INTERVAL = 60
-      STALL_THRESHOLD  = 300
+      MONITOR_INTERVAL         = 60
+      STALL_THRESHOLD          = 300
+      SUPPORTED_FORMAT_VERSION = 4
+
+      module LocalArrayExtender
+        refine Array do
+          def shift_u16
+            lo, hi = self.shift(2)
+
+            return (((hi << 8) & 0xff00) | ((lo << 0) & 0x00ff))
+          end
+        end
+      end
 
       class Exit < Exception; end
 
@@ -33,8 +44,11 @@ module EnvLog
         attr_reader :data
       end
 
+      class NotSupported < StandardError; end
+
       class << self
         using TimeStringFormatChanger
+        using LocalArrayExtender
 
         def queue
           return @queue  ||= Thread::Queue.new
@@ -57,23 +71,69 @@ module EnvLog
           }
         end
 
-        def put_data(json)
-          data = JSON.parse(json)
-          raise InvalidData.new(data) if not Schema.valid?(:INPUT_DATA, data)
+        def unpack_v4_data(src)
+          ver = src.shift
+          if ver != SUPPORTED_FORMAT_VERSION
+            raise NotSupported.new("not support format version #{ver}")
+          end
+
+          ret = {
+            "seq"  =>  src.shift,
+            "addr" => "%02x:%02x:%02x:%02x:%02x:%02x" % src.shift(6)
+          }
+
+          flg = src.shift_u16
+
+          if flg.anybits?(0x0001)
+            ret["temp"] = src.shift_u16 / 100.0
+          end
+
+          if flg.anybits?(0x0002)
+            ret["hum"]  = src.shift_u16 / 100.0
+          end
+
+          if flg.anybits?(0x0004)
+            ret["a/p"]  = src.shift_u16 /  10.0
+          end
+
+          if flg.anybits?(0x0008)
+            ret["vbat"] = src.shift_u16 / 100.0
+          end
+
+          if flg.anybits?(0x0010)
+            ret["vbus"] = src.shift_u16 / 100.0
+          end
+
+          return ret
+        end
+
+        def put_data(data)
+          if not Schema.valid?(:INPUT_DATA, data)
+            raise InvalidData.new(data)
+          end
 
           # データベースへの登録に時間がかかり、処理が遅延する場合が
           # あったのでスレッドを分離し非同期処理に変更した。
           # 登録処理本体はentry_threadで行なっている。
           queue << Time.now.to_s
           queue << data
-
-        rescue InvalidData
-          Log.error("input") {"invalid data received, ignore"}
-
-        rescue JSON::ParserError
-          Log.error("input") {"broken data received, ignore"}
         end
         private :put_data
+
+        def recording?(info)
+          return %w[NORMAL DEAD-BATTERY].include?(info[:state])
+        end
+        private :recording?
+
+        def timedout?(info, ts)
+          return (ts - Time.parse(info[:mtime])) > STALL_THRESHOLD
+        end
+        private :timedout?
+
+        def stalled?(info, ts)
+          return recording?(info) && timedout?(info, ts)
+        end
+        private :stalled?
 
         def monitor_thread
           Log.info("input") {"start moinitor thread"}
@@ -85,11 +145,7 @@ module EnvLog
               now = Time.now
 
               DBA.poll_sensor.each { |id, info|
-                next if info[:state] != "NORMAL"
-
-                if now - Time.parse(info[:mtime]) > STALL_THRESHOLD
-                  DBA.set_stall(id)
-                end
+                DBA.set_stall(id) if stalled?(info, now)
               }
 
             rescue Exit
@@ -168,6 +224,9 @@ module EnvLog
           when "udp"
             add_udp_source(src)
 
+          when "tcp"
+            add_tcp_source(src)
+
           else
             raise("unknown input source(#{src["type"]})")
           end
@@ -178,6 +237,10 @@ module EnvLog
           threads << Thread.fork {entry_thread()}
           threads.each {|thread| thread.join}
         end
+
+        def stop
+          threads.each {|thread| thread.raise(Exit)}
+        end
       end
     end
   end
@@ -185,3 +248,4 @@ end
 
 require_relative "input/serial"
 require_relative "input/udp"
+require_relative "input/tcp"

@@ -5,6 +5,8 @@
  */
 
 (function () {
+  const NONE_VALUE_STRING = " \u{2014} ";
+
   var session;
 
   function lookupStateClass(val) {
@@ -43,6 +45,10 @@
     return ret;
   }
 
+  function formatValue(fmt, val) {
+    return ((_.isNil(val))? NONE_VALUE_STRING: sprintf(fmt, val));
+  }
+
   function stringifyValues(src) {
     var ret;
 
@@ -50,11 +56,11 @@
     case "NORMAL":
     case "DEAD-BATTERY":
       ret = {
-        "temp": sprintf("%4.1f", src["temp"]),
-        "hum":  sprintf("%4.1f", src["hum"]),
-        "a/p":  sprintf("%4d",   src["a/p"]),
-        "vbat": sprintf("%4.2f", src["vbat"]),
-        "vbus": sprintf("%4.2f", src["vbus"]),
+        "temp": formatValue("%4.1f", src["temp"]),
+        "hum":  formatValue("%4.1f", src["hum"]),
+        "a/p":  formatValue("%4.0f", src["a/p"]),
+        "vbat": formatValue("%4.2f", src["vbat"]),
+        "vbus": formatValue("%4.2f", src["vbus"]),
       };
       break;
 
@@ -63,11 +69,11 @@
     case "STALL":
     case "PAUSE":
         ret = {
-          "temp": " \u{2014} ",
-          "hum":  " \u{2014} ",
-          "a/p":  " \u{2014} ",
-          "vbat": " \u{2014} ",
-          "vbus": " \u{2014} ",
+          "temp": NONE_VALUE_STRING,
+          "hum":  NONE_VALUE_STRING,
+          "a/p":  NONE_VALUE_STRING,
+          "vbat": NONE_VALUE_STRING,
+          "vbus": NONE_VALUE_STRING,
         };
       break;
     }
@@ -75,104 +81,196 @@
     return ret;
   }
 
+  function setSensorRowValue(info) {
+    var $tr;
+    var foo;
+
+    $tr = $(`table#sensor-table > tbody > tr[data-sensor-id=${info["id"]}]`);
+    foo = stringifyValues(info);
+
+    if (info["state"] == "UNKNOWN" || info["state"] == "READY") {
+      $tr
+        .find('td.sensor-num > a')
+          .addClass('disabled')
+          .attr('href', '#')
+        .end();
+    } else {
+      $tr
+        .find('td.sensor-num > a')
+          .removeClass('disabled')
+          .attr('href', `/sensor/${info["id"]}`)
+        .end();
+    }
+
+    $tr
+      .find('td.last-update')
+        .text(info["mtime"])
+      .end()
+      .find('td.temperature')
+        .text(foo["temp"])
+      .end()
+      .find('td.humidity')
+        .text(foo["hum"])
+      .end()
+      .find('td.air-pressure')
+        .text(foo["a/p"])
+      .end()
+      .find('td.vbat')
+        .text(foo["vbat"])
+      .end()
+      .find('td.vbus')
+        .text(foo["vbus"])
+      .end()
+      .find('td.state')
+        .removeClass()
+        .addClass('state')
+        .addClass(lookupStateClass(info["state"]))
+      .end()
+      .find('td.description')
+        .text(info["descr"])
+      .end();
+  }
+
+  function createNewRow(id) {
+    var $ret;
+
+    $ret = $('<tr>')
+      .attr("data-sensor-id", id)
+      .append($('<td>')
+        .addClass('sensor-num')
+        .append($('<a>')
+          .attr('href', '#')
+          .on('click', (e) => {
+            if ($(e.target).hasClass('disabled')) {
+              e.preventDefault();
+            }
+          })
+        )
+      )
+      .append($('<td>')
+        .addClass('last-update')
+      )
+      .append($('<td>')
+        .addClass('temperature')
+      )
+      .append($('<td>')
+        .addClass('humidity')
+      )
+      .append($('<td>')
+        .addClass('air-pressure')
+      )
+      .append($('<td>')
+        .addClass('vbat')
+      )
+      .append($('<td>')
+        .addClass('vbus')
+      )
+      .append($('<td>')
+        .addClass('state')
+      )
+      .append($('<td>')
+        .addClass('description')
+      )
+      .append($('<td>')
+        .addClass('control')
+        .append($('<button>')
+          .addClass("btn btn-dark btn-sm")
+          .html(icon("info"))
+          .on('click', () => {
+            DeviceInfo.showModal(id)
+              .then((operation) => {
+                switch (operation) {
+                case "UPDATE":
+                  updateSensorRow(id);
+                  break;
+
+                case "REMOVE":
+                  removeSensorRow(id);
+                  break;
+
+                default:
+                  throw(`really? (${operation})`);
+                  break;
+                }
+              })
+          })
+        )
+      );
+
+    return $ret;
+  }
+
+  function appendSensorRow(id) {
+    $('table#sensor-table > tbody').append(createNewRow(id));
+    updateSensorRow(id);
+  }
+
   function updateSensorRow(id) {
-    session.getLatestSensorValue(id)
-      .then((info) => {
-        let foo;
+    var args;
 
-        foo = stringifyValues(info);
+    args = [session.getSensorInfo(id),
+            session.getLatestSensorValue(id)];
 
-        $('table#sensor-table > tbody')
-          .find(`tr[data-sensor-id=${id}]`)
-            .find('td.last-update')
-              .text(info["time"])
-            .end()
-            .find('td.temperature')
-              .text(foo["temp"])
-            .end()
-            .find('td.humidity')
-              .text(foo["hum"])
-            .end()
-            .find('td.air-pressure')
-              .text(foo["a/p"])
-            .end()
-            .find('td.vbat')
-              .text(foo["vbat"])
-            .end()
-            .find('td.vbus')
-              .text(foo["vbus"])
-            .end()
-            .find('td.state')
-              .removeClass()
-              .addClass('state')
-              .addClass(lookupStateClass(info["state"]))
-            .end();
+    $.when(...args)
+      .then((si, lv) => {
+        let info;
+
+        info = {
+          id:    id,
+          ctime: si["ctime"],
+          mtime: lv["time"],
+          descr: si["descr"],
+          state: si["state"],
+          temp:  lv["temp"],
+          hum:   lv["hum"],
+          "a/p": lv["a/p"],
+          rssi:  lv["rssi"],
+          vbat:  lv["vbat"],
+          vbus:  lv["vbus"],
+        }
+
+        setSensorRowValue(info);
+        $('table#sensor-table').trigger('update');
       });
+  }
+
+  function removeSensorRow(id) {
+    $(`table#sensor-table > tbody > tr[data-sensor-id=${id}]`).remove();
+  }
+
+  function icon(name) {
+    var ret;
+
+    ret = '<svg class="bi">' +
+          `<use xlink:href="/icons/bootstrap-icons.svg#${name}"/>` +
+          '</svg>';
+
+    return ret;
   }
 
   function setSensorTable(list) {
     list.forEach((info) => {
-      let foo;
-
-      foo = stringifyValues(info);
-
-      $('table#sensor-table > tbody')
-        .append($('<tr>')
-          .attr("data-sensor-id", info["id"])
-          .append($('<td>')
-            .addClass('sensor-num')
-            .append($('<a>')
-              .attr('href', `sensor/${info["id"]}`)
-            )
-          )
-          .append($('<td>')
-            .addClass('last-update')
-            .text(info["mtime"])
-          )
-          .append($('<td>')
-            .addClass('temperature')
-            .text(foo["temp"])
-          )
-          .append($('<td>')
-            .addClass('humidity')
-            .text(foo["hum"])
-          )
-          .append($('<td>')
-            .addClass('air-pressure')
-            .text(foo["a/p"])
-          )
-          .append($('<td>')
-            .addClass('vbat')
-            .text(foo["vbat"])
-          )
-          .append($('<td>')
-            .addClass('vbus')
-            .text(foo["vbus"])
-          )
-          .append($('<td>')
-            .addClass('state')
-            .addClass(lookupStateClass(info["state"]))
-          )
-          .append($('<td>')
-            .addClass('description')
-            .text(info["descr"])
-          )
-        );
+      $('table#sensor-table > tbody').append(createNewRow(info["id"]));
+      setSensorRowValue(info)
     });
-  }
 
-  function pollSensor()
-  {
-    session.pollSensor()
-      .then((info) => {
-        console.log(info);
+    $('table#sensor-table')
+      .tablesorter({
+        sortList: [[1, 1]],
+        resort:   true,
       });
   }
 
   function startSession() {
     session
+      .on('add_sensor', (id) => {
+        appendSensorRow(id);
+      })
       .on('update_sensor', (id) => {
         updateSensorRow(id);
+      })
+      .on('remove_sensor', (id) => {
+        removeSensorRow(id);
       })
       .on('session_closed', () => {
         Utils.showAbortShield("session closed");
@@ -183,9 +281,20 @@
         return session.getSensorList()
       })
       .then((list) => {
+        let args;
+
         setSensorTable(list);
 
-        return session.addNotifyRequest("update_sensor");
+        args = [
+          "update_sensor",
+          "add_sensor",
+          "remove_sensor"
+        ];
+
+        return session.addNotifyRequest(...args);
+      })
+      .then(() => {
+        $('body').show();
       })
       .fail((error) => {
         Utils.showAbortShield(error);
@@ -194,6 +303,11 @@
 
   function initialize() {
     session = new Session(WEBSOCK_URL);
+
+    LoadingShield.initialize();
+    ErrorModal.initialize();
+    ConfirmModal.initialize();
+    DeviceInfo.initialize(session);
 
     startSession();
   }
@@ -207,6 +321,7 @@
       "/css/pretty-checkbox.min.css",
       "/css/roboto.css",
       "/css/roboto-mono.css",
+      "/css/bootstrap-icons.css",
 
       "/js/popper.min.js",
       "/js/bootstrap.min.js",
@@ -214,10 +329,17 @@
       "/js/jquery.nicescroll.min.js",
       "/js/ion.rangeSlider.min.js",
       "/js/sprintf.min.js",
+      "/js/moment.min.js",
+      "/js/lodash.min.js",
+      "/js/jquery.tablesorter.min.js",
 
       "/css/main/style.scss",
       "/js/msgpack-rpc.js",
       "/js/session.js",
+      "/js/loading_shield.js",
+      "/js/misc/dialog/device_info.js",
+      "/js/error_modal.js",
+      "/js/confirm_modal.js",
     ];
 
     Utils.require(list)

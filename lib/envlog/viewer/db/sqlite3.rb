@@ -8,7 +8,6 @@
 #
 
 require 'sqlite3'
-require "#{LIB_DIR}/db/sqlite3.rb"
 
 module EnvLog
   module Viewer
@@ -51,8 +50,8 @@ module EnvLog
       def get_sensor_list
         rows = @db.execute(<<~EOQ)
           select SENSOR_TABLE.id,
-                 datetime(SENSOR_TABLE.ctime),
-                 datetime(SENSOR_TABLE.mtime),
+                 SENSOR_TABLE.ctime,
+                 SENSOR_TABLE.mtime,
                  SENSOR_TABLE.descr,
                  SENSOR_TABLE.state,
                  DATA_TABLE.temp,
@@ -91,6 +90,8 @@ module EnvLog
           select state, mtime from SENSOR_TABLE where id = ?;
         EOQ
 
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
         if row[0] == "READY" || row[0] == "UNKNOWN" || row[0] == "PAUSE"
           ret = {
             :time  => row[1], 
@@ -124,28 +125,26 @@ module EnvLog
           rows = @db.execute2(<<~EOQ, id, "now")
             select time, temp, humidity, `air-pres` from DATA_TABLE
                 where sensor = ? and
-                      time >= datetime(?, "localtime", "-#{span} seconds");
+                      time >= datetime(?, "-#{span} seconds");
           EOQ
         else
           rows = @db.execute2(<<~EOQ, id, tm, tm)
-            select time, temp, humidity, `air-pres` from DATA_TABLE
+            select datetime(time, 'localtime'),
+                   temp, humidity, `air-pres`
+                from DATA_TABLE
                 where sensor = ? and
-                    time >= datetime(?, "localtime") and
-                    time <= datetime(?, "localtime", "+#{span} seconds");
+                    time >= ? and time <= datetime(?, "+#{span} seconds");
           EOQ
         end
 
-        ret = {:time => [], :temp => [], :hum => [], :"a/p" => []}
-
         rows.shift
-        rows.each { |row|
-          ret[:time]  << row[0]
-          ret[:temp]  << row[1]
-          ret[:hum]   << row[2]
-          ret[:"a/p"] << row[3]
-        }
 
-        return ret
+        row0 = rows.inject([]) {|m, n| m << n[0]}
+        row1 = (rows.dig(0, 1))? (rows.inject([]) {|m, n| m << n[1]}): nil
+        row2 = (rows.dig(0, 2))? (rows.inject([]) {|m, n| m << n[2]}): nil
+        row3 = (rows.dig(0, 3))? (rows.inject([]) {|m, n| m << n[3]}): nil
+
+        return {:time => row0, :temp => row1, :hum => row2, :"a/p" => row3}
       end
 
       def poll_sensor
@@ -154,6 +153,25 @@ module EnvLog
         EOQ
 
         return rows.inject({}) {|m, n| m[n[0]] = n[1]; m}
+      end
+
+      def get_sensor_info(id)
+        row = @db.get_first_row(<<~EOQ, id)
+          select addr, ctime, descr, `pow-source`, state
+              from SENSOR_TABLE where id = ?;
+        EOQ
+
+        raise DeviceNotFound.new("device #{id} is not found") if not row
+
+        ret = {
+          :addr  => row[0],
+          :ctime => row[1],
+          :descr => row[2],
+          :psrc  => row[3],
+          :state => row[4],
+        }
+
+        return ret
       end
     end
   end

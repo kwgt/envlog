@@ -1,0 +1,36 @@
+<%
+  #
+  # Environemnt data logger
+  #
+  #   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+  #
+%>
+
+<div id="error-modal" class="modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <span class="text-white">
+            <%= render_icon("exclamation-triangle-fill") %>
+          </span>
+          ERROR
+        </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <textarea rows="5" readonly></textarea>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <span><%= render_icon("x-circle") %></span>
+          CLOSE
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
