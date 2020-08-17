@@ -76,6 +76,17 @@ uint16_t pres;
 uint16_t vbat;
 uint16_t vbus;
 
+void
+into_sleep()
+{
+  int64_t t;
+
+  t = (S_PERIOD * 1000000) - micros();
+  if (t < 10000000) t = 10000000; 
+
+  esp_deep_sleep(t);
+}
+ 
 #ifdef USE_BLE
 void
 setup_comm()
@@ -160,7 +171,7 @@ setup_comm()
   if (i == AP_RETRY_LIMIT) {
     // 限度数を超えて接続に失敗した場合はここでdeep sleep
     // ※ 起床時はリセットがかかるのでここに入るとこのターンはこれで終了
-    esp_deep_sleep(S_PERIOD * 1000000);
+    into_sleep();
   }
 
 #ifdef ENABLE_LCD
@@ -268,7 +279,29 @@ setup()
 void
 read_sensor()
 {
-  dht12.read();
+  int n;
+
+  /*
+   * DHT12のhumidity responseは最大20sかかる。
+   * m5atomの場合は消費電力や本体温度の上昇を気にする必要が無いので真面目に
+   * 待ってみる。
+   */
+  n = 10;
+
+  while (n-- > 0) {
+#ifdef ENABLE_LED
+    digitalWrite(M5STICK_PIN_LED, HIGH);
+#endif /* defined(ENABLE_LED) */
+
+    dht12.read();
+
+    delay(500);
+#ifdef ENABLE_LED
+    digitalWrite(M5STICK_PIN_LED, LOW);
+#endif /* defined(ENABLE_LED) */
+    delay(1500);
+  }
+
   temp = (uint16_t)(dht12.temperature * 100);
   hum  = (uint16_t)(dht12.humidity * 100);
   pres = (uint16_t)(bme.readPressure() / 10);
@@ -293,10 +326,6 @@ loop()
                 vbat / 100.0, vbus / 100.0);
 #endif /* !defined(ENABLE_LCD) */
 
-#ifdef ENABLE_LED
-  digitalWrite(M5STICK_PIN_LED, LOW);
-#endif /* !defined(ENABLE_LED) */
-
   send_data();
 
 #ifdef ENABLE_LED
@@ -307,5 +336,5 @@ loop()
 
   stop_comm();
 
-  esp_deep_sleep(S_PERIOD * 1000000);
+  into_sleep();
 }
