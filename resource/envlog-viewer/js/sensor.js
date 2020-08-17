@@ -32,7 +32,7 @@
     }
   }
 
-  function plot2Day(name, targ, info, key, suffix, range) {
+  function plot2Day(name, targ, info, key, fmt, suffix, range) {
     var trace1;
     var trace2;
     var trace3;
@@ -53,7 +53,7 @@
       marker:        {size:2},
       x:             info["time"],
       y:             info[key],
-      hovertemplate: "%{y}"
+      hovertemplate: `${fmt}${suffix}`,
     };
 
     head   = moment(now).subtract(2, 'days').format("YYYY-MM-DD HH:mm:ss");
@@ -66,23 +66,29 @@
     trace2 = {
       name:          "期間最低",
       type:          "scatter",
-      mode:          "markers",
-      marker:        {color:'blue', symbol:"circle-open-dot", size: 10},
-      opacity:       0.75,
       x:             [tmMin],
       y:             [min],
-      hovertemplate: "%{y}"
+      opacity:       0.75,
+      mode:          "markers+text",
+      marker:        {color:'blue', symbol:"circle-open-dot", size: 10},
+      hoverinfo:     "skip",
+      texttemplate:  `期間最低 ${fmt}${suffix}`,
+      textposition:  "bottom center",
+      textfont:      {family:"Roboto mono", color:"blue"},
     };
 
     trace3 = {
       name:          "期間最高",
       type:          "scatter",
-      mode:          "markers",
-      marker:        {color:'red', symbol:"circle-open-dot", size: 10},
-      opacity:       0.75,
       x:             [tmMax],
       y:             [max],
-      hovertemplate: "%{y}"
+      opacity:       0.75,
+      mode:          "markers+text",
+      marker:        {color:'red', symbol:"circle-open-dot", size: 10},
+      hoverinfo:     "skip",
+      texttemplate:  `期間最高 ${fmt}${suffix}`,
+      textposition:  "top center",
+      textfont:      {family:"Roboto mono", color:"red"},
     };
 
     data   = [trace1, trace2, trace3]
@@ -178,7 +184,8 @@
      * 気温
      */
     if (info["temp"]) {
-      plot2Day("気温", "temp-graph", info, "temp", "\u00B0C", [5, 40]);
+      plot2Day("気温", "temp-graph", info,
+               "temp", "%{y:.1f}", "\u00B0C", [5, 40]);
     } else {
       $("div#temp-graph").remove();
     }
@@ -187,7 +194,8 @@
      *  湿度
      */
     if (info["hum"]) {
-      plot2Day("湿度", "hum-graph", info, "hum", "%", [30, 90]);
+      plot2Day("湿度", "hum-graph", info,
+               "hum", "%{y:.1f}", "%", [30, 90]);
     } else {
       $("div#hum-graph").remove();
     }
@@ -196,7 +204,8 @@
      *  気圧
      */
     if (info["a/p"]) {
-      plot2Day("気圧", "air-graph", info, "a/p", "hpa", [995, 1020]);
+      plot2Day("気圧", "air-graph", info,
+               "a/p",  "%{y:.0f}", "hpa", [995, 1020]);
     } else {
       $("div#air-graph").remove();
     }
@@ -254,23 +263,29 @@
     trace4 = {
       name:          "期間最低",
       type:          "scatter",
-      mode:          "markers",
-      marker:        {color:'blue', symbol:"circle-open-dot", size: 10},
-      opacity:       0.75,
       x:             [dtMin.concat(" 12:00:00")],
       y:             [min],
-      hovertemplate: `${fmt}${suffix}`
+      opacity:       0.75,
+      mode:          "markers+text",
+      marker:        {color:'blue', symbol:"circle-open-dot", size: 10},
+      hoverinfo:     "skip",
+      texttemplate:  `期間最低 ${fmt}${suffix}`,
+      textposition:  "bottom center",
+      textfont:      {family:"Roboto mono", color:"blue"},
     };
 
     trace5 = {
       name:          "期間最高",
       type:          "scatter",
-      mode:          "markers",
-      marker:        {color:'red', symbol:"circle-open-dot", size: 10},
-      opacity:       0.75,
       x:             [dtMax.concat(" 12:00:00")],
       y:             [max],
-      hovertemplate: `${fmt}${suffix}`
+      opacity:       0.75,
+      mode:          "markers+text",
+      marker:        {color:'red', symbol:"circle-open-dot", size: 10},
+      hoverinfo:     "skip",
+      texttemplate:  `期間最高 ${fmt}${suffix}`,
+      textposition:  "top center",
+      textfont:      {family:"Roboto mono", color:"red"},
     };
 
     data   = [trace1, trace2, trace3, trace4, trace5];
@@ -515,23 +530,29 @@
     trace4 = {
       name:          "期間最低",
       type:          "scatter",
-      mode:          "markers",
-      marker:        {color:'blue', symbol:"circle-open-dot", size: 10},
-      opacity:       0.75,
       x:             [dtMin],
       y:             [min],
-      hovertemplate: `${fmt}${suffix}`
+      opacity:       0.75,
+      mode:          "markers+text",
+      marker:        {color:'blue', symbol:"circle-open-dot", size: 10},
+      hoverinfo:     "skip",
+      texttemplate:  `期間最低 ${fmt}${suffix}`,
+      textposition:  "bottom center",
+      textfont:      {family:"Roboto mono", color:"blue"},
     };
 
     trace5 = {
       name:          "期間最高",
       type:          "scatter",
-      mode:          "markers",
-      marker:        {color:'red', symbol:"circle-open-dot", size: 10},
-      opacity:       0.75,
       x:             [dtMax],
       y:             [max],
-      hovertemplate: `${fmt}${suffix}`
+      opacity:       0.75,
+      mode:          "markers+text",
+      marker:        {color:'red', symbol:"circle-open-dot", size: 10},
+      hoverinfo:     "skip",
+      texttemplate:  `期間最高 ${fmt}${suffix}`,
+      textposition:  "top center",
+      textfont:      {family:"Roboto mono", color:"red"},
     };
 
     data   = [trace1, trace2, trace3, trace4, trace5];
