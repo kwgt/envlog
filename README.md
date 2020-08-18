@@ -40,7 +40,7 @@ $ pio run -t upload
 
 ## Usage
 ### Logger process
-This process is receiving data from a sensor and registering it in the database. Data can be received  input by serial device via  gateway device or by UDP available. You can choose to use either SQLite3 or MySQL(MariaDB) as the database.
+This process is receiving data from a sensor and registering it in the database. Data can be received  input by serial device via  gateway device or by UDP and TCP available. You can choose to use either SQLite3 or MySQL(MariaDB) as the database.
 
 ```
 envlog-logger [options]
