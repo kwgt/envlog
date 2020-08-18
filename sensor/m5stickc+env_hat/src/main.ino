@@ -4,9 +4,9 @@
  *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
  */
 
-#undef USE_BLE
+#define USE_BLE
 #undef USE_UDP
-#define USE_TCP
+#undef USE_TCP
 
 #undef ENABLE_LCD
 #define ENABLE_LED
@@ -282,9 +282,7 @@ read_sensor()
   int n;
 
   /*
-   * DHT12のhumidity responseは最大20sかかる。
-   * m5atomの場合は消費電力や本体温度の上昇を気にする必要が無いので真面目に
-   * 待ってみる。
+   * DHT12のhumidity responseは最大20sかかるので待ちを行う。
    */
   n = 10;
 
@@ -295,11 +293,11 @@ read_sensor()
 
     dht12.read();
 
-    delay(500);
+    delay(1900);
 #ifdef ENABLE_LED
     digitalWrite(M5STICK_PIN_LED, LOW);
 #endif /* defined(ENABLE_LED) */
-    delay(1500);
+    delay(100);
   }
 
   temp = (uint16_t)(dht12.temperature * 100);
