@@ -65,5 +65,21 @@ if (!msgpack || !msgpack.rpc) {
     removeDevice(addr) {
       return this.remoteCall('remove_device', addr);
     }
+
+    getWeekData(id, tm) {
+      return this.remoteCall('get_week_data', id, tm);
+    }
+
+    getMonthData(id, tm) {
+      return this.remoteCall('get_month_data', id, tm);
+    }
+
+    getSeasonData(id, tm) {
+      return this.remoteCall('get_season_data', id, tm);
+    }
+
+    getYearData(id, tm) {
+      return this.remoteCall('get_year_data', id, tm);
+    }
   }
 })();
