@@ -17,6 +17,18 @@ definition:
       - STABLE        # 外部電源として安定化電源を使用
       - UNKNOWN       # 不明
 
+  - &RANGE
+    type: object
+    required:
+      - min
+      - max
+    properties:
+      min:
+        type: number
+      max:
+        type: number
+    addtionalProperties: false
+
 CONFIG:
   $schema: http://json-schema.org/draft-07/schema#
   description: >-
@@ -231,6 +243,26 @@ CONFIG:
           type: string
 
       additionalProperties: false
+
+    #
+    # viewerのグラフの設定
+    #
+    graph:
+      type: object
+      properties:
+        range:
+          description: >-
+            グラフで表示する値の範囲を指定します。
+            ※min < maxである必要があります。
+          type: object
+          properties:
+            temp:
+              <<: *RANGE
+            hum:
+              <<: *RANGE
+            a/p:
+              <<: *RANGE
+          additionalProperties: false
 
     #
     # ログファイル設定
