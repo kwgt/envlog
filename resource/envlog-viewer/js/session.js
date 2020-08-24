@@ -81,5 +81,9 @@ if (!msgpack || !msgpack.rpc) {
     getYearData(id, tm) {
       return this.remoteCall('get_year_data', id, tm);
     }
+
+    getGraphConfig() {
+      return this.remoteCall('get_graph_config');
+    }
   }
 })();

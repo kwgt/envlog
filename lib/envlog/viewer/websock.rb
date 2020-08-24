@@ -658,6 +658,16 @@ module EnvLog
         }
       end
       remote_async :get_year_data
+
+      #
+      # グラフ設定の取得
+      #
+      # @return [Hash] グラフ表示用の設定をパックしたハッシュ
+      #
+      def get_graph_config
+        return Config[:graph]
+      end
+      remote_public :get_graph_config
     end
   end
 end
