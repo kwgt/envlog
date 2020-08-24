@@ -8,6 +8,7 @@
 #
 
 require 'sinatra/base'
+require 'thin/logging'
 require 'yaml'
 require 'securerandom'
 require 'digest/md5'
@@ -200,9 +201,8 @@ module EnvLog
           set :threaded, true
           set :quiet, true
 
-          enable :logging
-
           use Rack::CommonLogger, Log.logger
+          Thin::Logging.logger = Log.logger
 
           EM.defer {
             sleep 1 until EM.reactor_running?
