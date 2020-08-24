@@ -25,8 +25,13 @@ module EnvLog
       end
 
       def stop
-        WebServer.stop
-        EM.stop
+        EM.add_timer(1) {
+          WebServer.stop
+          WebSocket.stop
+          EM.stop
+
+          Log.info("main") {"viewer exit."}
+        }
       end
 
       def sensor_tbl

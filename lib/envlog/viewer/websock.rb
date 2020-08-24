@@ -109,8 +109,8 @@ module EnvLog
         #
         # @return [boolean] TSLを使用する場合はtrue、使用しない場合はfalse
         #
-        def use_tsl?
-          return Config.has?(:webserver, :tsl)
+        def use_tls?
+          return Config.has?(:webserver, :tls)
         end
 
         #
@@ -128,7 +128,7 @@ module EnvLog
         # @return [Pathname] 証明書ファイルのパス
         #
         def cert_file
-          return @cert_file ||= Config.fetch_path(:webserver, :tsl, :cert)
+          return @cert_file ||= Config.fetch_path(:webserver, :tsl, :cert).to_s
         end
 
         #
@@ -137,7 +137,7 @@ module EnvLog
         # @return [Pathname] 鍵ファイルのパス
         #
         def key_file
-          return @key_file ||= Config.fetch_path(:webserver, :tsl, :key)
+          return @key_file ||= Config.fetch_path(:webserver, :tsl, :key).to_s
         end
 
         #
@@ -152,7 +152,7 @@ module EnvLog
             addr = bind_addr
           end
 
-          return "#{(use_tsl?)? "ssl":"tcp"}://#{addr}:#{ws_port}"
+          return "#{(use_tls?)? "tls":"tcp"}://#{addr}:#{ws_port}"
         end
         private :bind_url
 
@@ -170,7 +170,7 @@ module EnvLog
             opts = {
               :host        => bind_addr,
               :port        => ws_port,
-              :secure      => use_tsl?,
+              :secure      => use_tls?,
               :tls_options => {
                 :private_key_file => key_file,
                 :cert_chain_file  => cert_file
@@ -219,6 +219,10 @@ module EnvLog
               }
             }
           }
+        end
+
+        def stop
+          Log.info("websock") {"exit"}
         end
       end
 
