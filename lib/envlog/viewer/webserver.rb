@@ -201,8 +201,9 @@ module EnvLog
           set :threaded, true
           set :quiet, true
 
+          Thin::Logging.silent = true
+
           use Rack::CommonLogger, Log.logger
-          Thin::Logging.logger = Log.logger
 
           EM.defer {
             sleep 1 until EM.reactor_running?
