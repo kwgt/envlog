@@ -8,9 +8,7 @@
 #
 
 require 'sinatra/base'
-require 'puma'
-require 'puma/configuration'
-require 'puma/events'
+require 'thin/logging'
 require 'yaml'
 require 'securerandom'
 require 'digest/md5'
@@ -20,14 +18,8 @@ module EnvLog
     class WebServer < Sinatra::Base
       UUID_PATTERN = '\h{8}-\h{4}-\h{4}-\h{4}-\h{12}'
 
-      set :environment, (($develop_mode)? %s{development}: %s{production})
-      set :views, APP_RESOURCE_DIR + "views"
-      set :threaded, true
-      set :quiet, true
-
-      enable :logging
-
-      use Rack::CommonLogger, Log.logger
+      configure do
+      end
 
       configure :development do
         before do
@@ -137,14 +129,14 @@ module EnvLog
         private :bind_addr
 
         def key_file
-          return @key_file ||= Config.fetch_path(:webserver, :tls, :key)
+          return @key_file ||= Config.fetch_path(:webserver, :tls, :key).to_s
         end
         private :key_file
 
         def cert_file
-          return @cert_file ||= Config.fetch_path(:webserver, :tls, :cert)
+          return @cert_file ||= Config.fetch_path(:webserver, :tls, :cert).to_s
         end
-        private :key_file
+        private :cert_file
 
         if WebServer.use_auth?
           def new(*)
@@ -188,19 +180,10 @@ module EnvLog
         end
 
         def bind_url
-          if bind_addr.include?(":")
-            addr = "[#{bind_addr}]"
-          else
-            addr = bind_addr
-          end
+          addr = IPAddr.new(bind_addr)
+          str  = (addr.ipv6?)? "[#{addr.to_s}]":addr.to_s 
 
-          if use_tls?
-            ret = "ssl://#{addr}:#{http_port}?key=#{ssl_key}&cert=#{ssl_cert}"
-          else
-            ret = "tcp://#{addr}:#{http_port}"
-          end
-
-          return ret
+          return "#{(use_tls?)? "tls":"tcp"}://#{str}:#{http_port}"
         end
         private :bind_url
 
@@ -210,46 +193,46 @@ module EnvLog
 
         def start(app)
           set :app, app
+          set :environment, env_string
+          set :bind, bind_addr
+          set :port, http_port
+          set :views, APP_RESOURCE_DIR + "views"
+          set :server, %w[HTTP thin]
+          set :threaded, true
+          set :quiet, true
 
-          config  = Puma::Configuration.new { |user_config|
-            user_config.quiet
-            user_config.threads(4, 4)
-            user_config.bind(bind_url())
-            user_config.environment(env_string())
-            user_config.force_shutdown_after(-1)
-            user_config.app(WebServer)
+          Thin::Logging.silent = true
+
+          use Rack::CommonLogger, Log.logger
+
+          EM.defer {
+            sleep 1 until EM.reactor_running?
+
+            sigint = trap(:INT) {}
+            sigtrm = trap(:TERM) {}
+
+            Log.info("webserver") {"started (#{bind_url})"}
+
+            run! { |server|
+              if use_tls?
+                ssl_options = {
+                  :private_key_file => key_file,
+                  :cert_chain_file  => cert_file,
+                  :verify_peer      => false
+                }
+
+                server.ssl         = true
+                server.ssl_options = ssl_options
+              end
+            }
+
+            trap(:INT) {sigint.()}
+            trap(:TERM) {sigtrm.()}
           }
-
-          @events = Puma::Events.new(Log.device, Log.device)
-          @launch = Puma::Launcher.new(config, :events => @events)
-
-          # pumaのランチャークラスでのシグナルのハンドリングが
-          # 邪魔なのでオーバライドして無効化する
-          def @launch.setup_signals
-            # nothing
-          end
-
-          @thread = Thread.start {
-            begin
-              Log.info('webserver') {"started #{bind_url()}"}
-              @launch.run
-            ensure
-              Log.info('webserver') {"stopped"}
-            end
-          }
-
-          # サーバが立ち上がりきるまで待つ
-          booted  = false
-          @events.on_booted {booted = true}
-          sleep 0.2 until booted
         end
 
         def stop
-          @launch.stop
-          @thread.join
-
-          remove_instance_variable(:@launch)
-          remove_instance_variable(:@thread)
+          Log.info("webserver") {"exit"}
         end
       end
     end

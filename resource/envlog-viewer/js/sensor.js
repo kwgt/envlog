@@ -5,6 +5,7 @@
  */
 
 (function () {
+  var graphConfig; 
   var session;
   var sensorId;
   var now;
@@ -32,7 +33,7 @@
     }
   }
 
-  function plot2Day(name, targ, info, key, fmt, suffix, range) {
+  function plot2Day(name, targ, info, key, fmt, suffix, yMin, yMax) {
     var trace1;
     var trace2;
     var trace3;
@@ -107,7 +108,7 @@
         type:       "linear",
         ticksuffix: suffix,
         tickfont:   {family:"Roboto mono"},
-        range:      range,
+        range:      [yMin, yMax],
       },
       margin:       {t:40, b:70, r:20},
       shapes: [
@@ -184,8 +185,14 @@
      * 気温
      */
     if (info["temp"]) {
-      plot2Day("気温", "temp-graph", info,
-               "temp", "%{y:.1f}", "\u00B0C", [5, 40]);
+      plot2Day("気温",
+               "temp-graph",
+               info,
+               "temp",
+               "%{y:.1f}",
+               "\u00B0C",
+               _.get(graphConfig, ["range", "temp", "min"]),
+               _.get(graphConfig, ["range", "temp", "max"]));
     } else {
       $("div#temp-graph").remove();
     }
@@ -194,8 +201,14 @@
      *  湿度
      */
     if (info["hum"]) {
-      plot2Day("湿度", "hum-graph", info,
-               "hum", "%{y:.1f}", "%", [30, 90]);
+      plot2Day("湿度",
+               "hum-graph",
+               info,
+               "hum",
+               "%{y:.1f}",
+               "%",
+               _.get(graphConfig, ["range", "hum", "min"]),
+               _.get(graphConfig, ["range", "hum", "max"]));
     } else {
       $("div#hum-graph").remove();
     }
@@ -204,15 +217,21 @@
      *  気圧
      */
     if (info["a/p"]) {
-      plot2Day("気圧", "air-graph", info,
-               "a/p",  "%{y:.0f}", "hpa", [995, 1020]);
+      plot2Day("気圧",
+               "air-graph",
+               info,
+               "a/p",
+               "%{y:.0f}",
+               "hpa",
+               _.get(graphConfig, ["range", "a/p", "min"]),
+               _.get(graphConfig, ["range", "a/p", "max"]));
     } else {
       $("div#air-graph").remove();
     }
   }
 
   function plotAbstractHourCore(name, targ, info, key,
-                                fmt, suffix, xRange, yRange) {
+                                fmt, suffix, xMin, xMax, yMin, yMax) {
     var trace1;
     var trace2;
     var trace3;
@@ -295,13 +314,13 @@
       modebar:      {orientation:"h"},
       showlegend:   false,
       xaxis: {
-        range:      xRange,
+        range:      [xMin, xMax],
         tickfont:   {family:"Roboto mono"},
         type:       "date",
       },
       yaxis: {
         autorange:  false,
-        range:      yRange,
+        range:      [yMin, yMax],
         type:       "linear",
         ticksuffix: suffix,
         tickfont:   {family:"Roboto mono"},
@@ -310,17 +329,17 @@
       shapes: [
         {
           type:     "line",
-          x0:       xRange[0],
+          x0:       xMin,
           y0:       min,
-          x1:       xRange[1],
+          x1:       xMax,
           y1:       min,
           opacity:  0.5,
           line:     {color:"blue", dash:"dashdot", width:0.5}
         },{        
           type:     "line",
-          x0:       xRange[0],
+          x0:       xMin,
           y0:       max,
-          x1:       xRange[1],
+          x1:       xMax,
           y1:       max,
           opacity:  0.5,
           line:     {color:"red", dash:"dashdot", width:0.5}
@@ -378,13 +397,10 @@
   function plotAbstractHourData(info, span) {
     var head;
     var tail;
-    var xRange;
     var chams;
-
 
     head   = moment(now).subtract(span - 1, "days").format("YYYY-MM-DD");
     tail   = moment(now).add(1, "days").format("YYYY-MM-DD");
-    xRange = [head, tail];
 
     info["date"].push(now);
     if (_.isArray(_.get(info, ["temp", "avg"]))) {
@@ -457,29 +473,53 @@
      * 気温
      */
     if (info["temp"]) {
-      plotAbstractHourCore("気温", "temp-graph", info,
-                           "temp", "%{y:.1f}", "\u00B0C", xRange, [5, 40]);
+      plotAbstractHourCore("気温",
+                           "temp-graph",
+                           info,
+                           "temp",
+                           "%{y:.1f}",
+                           "\u00B0C",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "temp", "min"]),
+                           _.get(graphConfig, ["range", "temp", "max"]));
     }
 
     /*
      *  湿度
      */
     if (info["hum"]) {
-      plotAbstractHourCore("湿度", "hum-graph", info,
-                           "hum", "%{y:.1f}", "%", xRange, [30, 90]);
+      plotAbstractHourCore("湿度",
+                           "hum-graph",
+                           info,
+                           "hum",
+                           "%{y:.1f}",
+                           "%",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "hum", "min"]),
+                           _.get(graphConfig, ["range", "hum", "max"]));
     }
 
     /*
      *  気圧
      */
     if (info["a/p"]) {
-      plotAbstractHourCore("気圧", "air-graph", info,
-                           "a/p", "%{y:.0f}", "hpa", xRange, [995, 1020]);
+      plotAbstractHourCore("気圧",
+                           "air-graph",
+                           info,
+                           "a/p",
+                           "%{y:.0f}",
+                           "hpa",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "a/p", "min"]),
+                           _.get(graphConfig, ["range", "a/p", "max"]));
     }
   }
 
   function plotAbstractDateCore(name, targ, info, key, fmt,
-                                suffix, xRange,yRange) {
+                                suffix, xMin, xMax, yMin, yMax) {
     var trace1;
     var trace2;
     var trace3;
@@ -562,13 +602,13 @@
       modebar:      {orientation:"h"},
       showlegend:   false,
       xaxis: {
-        range:      xRange,
+        range:      [xMin, xMax],
         tickfont:   {family:"Roboto mono"},
         type:       "date",
       },
       yaxis: {
         autorange:  false,
-        range:      yRange,
+        range:      [yMin, yMax],
         type:       "linear",
         ticksuffix: suffix,
         tickfont:   {family:"Roboto mono"},
@@ -577,17 +617,17 @@
       shapes: [
         {
           type:     "line",
-          x0:       xRange[0],
+          x0:       xMin,
           y0:       min,
-          x1:       xRange[1],
+          x1:       xMax,
           y1:       min,
           opacity:  0.5,
           line:     {color:"blue", dash:"dashdot", width:0.5}
         },{        
           type:     "line",
-          x0:       xRange[0],
+          x0:       xMin,
           y0:       max,
-          x1:       xRange[1],
+          x1:       xMax,
           y1:       max,
           opacity:  0.5,
           line:     {color:"red", dash:"dashdot", width:0.5}
@@ -601,12 +641,10 @@
   function plotAbstractDateData(info, span) {
     var head;
     var tail;
-    var xRange;
     var chams;
 
     head   = moment(now).subtract(span - 1, "days").format("YYYY-MM-DD");
     tail   = moment(now).format("YYYY-MM-DD");
-    xRange = [head, tail];
 
     /*
      * 欠損部分のマーキング
@@ -642,24 +680,48 @@
      * 気温
      */
     if (info["temp"]) {
-      plotAbstractDateCore("気温", "temp-graph", info,
-                           "temp", "%{y:.1f}", "\u00B0C", xRange, [5, 40]);
+      plotAbstractDateCore("気温",
+                           "temp-graph",
+                           info,
+                           "temp",
+                           "%{y:.1f}",
+                           "\u00B0C",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "temp", "min"]),
+                           _.get(graphConfig, ["range", "temp", "max"]));
     }
 
     /*
      *  湿度
      */
     if (info["hum"]) {
-      plotAbstractDateCore("湿度", "hum-graph", info,
-                           "hum", "%{y:.1f}", "%", xRange, [30, 90]);
+      plotAbstractDateCore("湿度",
+                           "hum-graph",
+                           info,
+                           "hum",
+                           "%{y:.1f}",
+                           "%",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "hum", "min"]),
+                           _.get(graphConfig, ["range", "hum", "max"]));
     }
 
     /*
      *  気圧
      */
     if (info["a/p"]) {
-      plotAbstractDateCore("気圧", "air-graph", info,
-                           "a/p", "%{y:.0f}", "hpa", xRange, [995, 1020]);
+      plotAbstractDateCore("気圧",
+                           "air-graph",
+                           info,
+                           "a/p",
+                           "%{y:.0f}",
+                           "hpa",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "a/p", "min"]),
+                           _.get(graphConfig, ["range", "a/p", "max"]));
     }
   }
 
@@ -749,6 +811,11 @@
 
     session.start()
       .then(() => {
+        return session.getGraphConfig()
+      })
+      .then((config) => {
+        graphConfig = config;
+
         return session.getLatestSensorValue(sensorId)
       })
       .then((info) => {
