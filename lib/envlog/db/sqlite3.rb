@@ -23,6 +23,15 @@ module EnvLog
         }
 
         class << db
+          def exist_table?(name)
+            n = self.get_first_value(<<~EOQ)
+              select count(*) from sqlite_master
+                  where type = 'table' and name = '#{name}';
+            EOQ
+
+            return n.zero?.!
+          end
+
           def check_exist(addr)
             n = self.get_first_value(<<~EOQ, addr)
               select count(*) from SENSOR_TABLE where addr = ?;
@@ -385,41 +394,15 @@ module EnvLog
       begin
         db.transaction
 
-        #
-        # センサー定義テーブル
-        #
-        db.execute(<<~EOQ)
-          create table if not exists SENSOR_TABLE (
-            addr         text unique, /* デバイスアドレス          */
-            id           text unique, /* センサID(UUID)            */
-            ctime        timestamp,   /* 登録日時                  */
-            mtime        timestamp,   /* 更新日時                  */
-            descr        text,        /* 端末概要                  */
-            `pow-source` text,        /* 外部電源の種別            */
-            state        text,        /* 状態                      */
-            `last-seq`   integer,     /* 最終シーケンス番号        */
+        ddl = YAML.load_file(DATA_DIR + "ddl" + "sqlite3.yml")
 
-            primary key (id)
-          ); 
-        EOQ
+        if not db.exist_table?("SENSOR_TABLE")
+          db.query(ddl.dig("sensor_table", "v1"))
+        end
 
-        #
-        # データテーブル
-        #
-        db.execute(<<~EOQ)
-          create table if not exists DATA_TABLE (
-            sensor     text,         /* センサーID (UUID)          */
-            time       timestamp,    /* 記録日時                   */
-            temp       numeric,      /* 気温                       */
-            humidity   numeric,      /* 湿度                       */
-            `air-pres` numeric,      /* 気圧                       */
-            rssi       integer,      /* 計測時のRSSI               */
-            vbat       numeric,      /* 計測時の電池電圧           */
-            vbus       numeric,      /* 計測時の外部電源電圧       */
-
-            primary key (time, sensor)
-          );
-        EOQ
+        if not db.exist_table?("DATA_TABLE_V2")
+          db.query(ddl.dig("data_table", "v2"))
+        end
 
         db.commit
 

@@ -89,7 +89,7 @@ module EnvLog
           end
 
           if flg.anybits?(0x0002)
-            ret["hum"]  = src.shift_u16 / 100.0
+            ret["r/h"]  = src.shift_u16 / 100.0
           end
 
           if flg.anybits?(0x0004)
@@ -107,9 +107,25 @@ module EnvLog
           return ret
         end
 
+        def calc_vh(t, rh)
+          e = 6.1078 * (10 ** ((7.5 * t) / (t + 237.3)))
+          a = (216.7 * e) / (t + 273.15)
+
+          return a * (rh / 100.0)
+        end
+        private :calc_vh
+
         def put_data(data)
           if not Schema.valid?(:INPUT_DATA, data)
             raise InvalidData.new(data)
+          end
+
+          # 絶対湿度が含まれておらず、なおかつ計算可能な場合は補完する
+          if not data.include?("v/h")
+            t  = data["temp"]
+            rh = data["r/h"]
+
+            data["v/h"] = calc_vh(t, rh) if t and rh
           end
 
           # データベースへの登録に時間がかかり、処理が遅延する場合が

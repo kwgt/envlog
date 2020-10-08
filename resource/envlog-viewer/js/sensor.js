@@ -18,11 +18,18 @@
       $('div#temperature').remove();
     }
 
-    if (info["hum"]) {
-      $('div#humidity > div.value > span.number')
-        .text(sprintf("%.1f", info["hum"]));
+    if (info["r/h"]) {
+      $('div#relative-humidity > div.value > span.number')
+        .text(sprintf("%.1f", info["r/h"]));
     } else {
-      $('div#humidity').remove();
+      $('div#relative-humidity').remove();
+    }
+
+    if (info["v/h"]) {
+      $('div#volumetric-humidity > div.value > span.number')
+        .text(sprintf("%.1f", info["v/h"]));
+    } else {
+      $('div#volumetric-humidity').remove();
     }
 
     if (info["a/p"]) {
@@ -166,8 +173,8 @@
         src["temp"].splice(i, 0, null)
       }
 
-      if (src["hum"]) {
-        src["hum"].splice(i, 0, null)
+      if (src["r/h"]) {
+        src["r/h"].splice(i, 0, null)
       }
 
       if (src["a/p"]) {
@@ -198,19 +205,35 @@
     }
 
     /*
-     *  湿度
+     *  相対湿度
      */
-    if (info["hum"]) {
-      plot2Day("湿度",
-               "hum-graph",
+    if (info["r/h"]) {
+      plot2Day("湿度(RH)",
+               "rh-graph",
                info,
-               "hum",
+               "r/h",
                "%{y:.1f}",
                "%",
-               _.get(graphConfig, ["range", "hum", "min"]),
-               _.get(graphConfig, ["range", "hum", "max"]));
+               _.get(graphConfig, ["range", "r/h", "min"]),
+               _.get(graphConfig, ["range", "r/h", "max"]));
     } else {
-      $("div#hum-graph").remove();
+      $("div#rh-graph").remove();
+    }
+
+    /*
+     *  絶対湿度(容積)
+     */
+    if (info["v/h"]) {
+      plot2Day("湿度(VH)",
+               "vh-graph",
+               info,
+               "v/h",
+               "%{y:.1f}",
+               "g/m\u00b3",
+               _.get(graphConfig, ["range", "v/h", "min"]),
+               _.get(graphConfig, ["range", "v/h", "max"]));
+    } else {
+      $("div#vh-graph").remove();
     }
 
     /*
@@ -408,9 +431,9 @@
       duplicateTail(info["temp"]["max"]);
     }
 
-    if (_.isArray(_.get(info, ["hum", "avg"]))) {
-      duplicateTail(info["hum"]["min"]);
-      duplicateTail(info["hum"]["max"]);
+    if (_.isArray(_.get(info, ["r/h", "avg"]))) {
+      duplicateTail(info["r/h"]["min"]);
+      duplicateTail(info["r/h"]["max"]);
     }
 
     if (_.isArray(_.get(info, ["a/p", "avg"]))) {
@@ -433,8 +456,8 @@
         info["temp"]["avg"].splice(i, 0, null);
       }
 
-      if (_.isArray(_.get(info, ["hum", "avg"]))) {
-        info["hum"]["avg"].splice(i, 0, null);
+      if (_.isArray(_.get(info, ["r/h", "avg"]))) {
+        info["r/h"]["avg"].splice(i, 0, null);
       }
 
       if (_.isArray(_.get(info, ["a/p", "avg"]))) {
@@ -458,9 +481,9 @@
         info["temp"]["max"].splice(i, 0, null);
       }
 
-      if (_.isArray(_.get(info, ["hum", "avg"]))) {
-        info["hum"]["min"].splice(i, 0, null);
-        info["hum"]["max"].splice(i, 0, null);
+      if (_.isArray(_.get(info, ["r/h", "avg"]))) {
+        info["r/h"]["min"].splice(i, 0, null);
+        info["r/h"]["max"].splice(i, 0, null);
       }
 
       if (_.isArray(_.get(info, ["a/p", "avg"]))) {
@@ -486,19 +509,35 @@
     }
 
     /*
-     *  湿度
+     *  相対湿度
      */
-    if (info["hum"]) {
-      plotAbstractHourCore("湿度",
-                           "hum-graph",
+    if (info["r/h"]) {
+      plotAbstractHourCore("相対(RH)",
+                           "rh-graph",
                            info,
-                           "hum",
+                           "r/h",
                            "%{y:.1f}",
                            "%",
                            head,
                            tail,
-                           _.get(graphConfig, ["range", "hum", "min"]),
-                           _.get(graphConfig, ["range", "hum", "max"]));
+                           _.get(graphConfig, ["range", "r/h", "min"]),
+                           _.get(graphConfig, ["range", "r/h", "max"]));
+    }
+
+    /*
+     *  絶対湿度(容積)
+     */
+    if (info["v/h"]) {
+      plotAbstractHourCore("湿度(VH)",
+                           "vh-graph",
+                           info,
+                           "v/h",
+                           "%{y:.1f}",
+                           "g/m\u00b3",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "v/h", "min"]),
+                           _.get(graphConfig, ["range", "v/h", "max"]));
     }
 
     /*
@@ -663,10 +702,16 @@
         info["temp"]["max"].splice(i, 0, null);
       }
 
-      if (_.isArray(_.get(info, ["hum", "avg"]))) {
-        info["hum"]["avg"].splice(i, 0, null);
-        info["hum"]["min"].splice(i, 0, null);
-        info["hum"]["max"].splice(i, 0, null);
+      if (_.isArray(_.get(info, ["r/h", "avg"]))) {
+        info["r/h"]["avg"].splice(i, 0, null);
+        info["r/h"]["min"].splice(i, 0, null);
+        info["r/h"]["max"].splice(i, 0, null);
+      }
+
+      if (_.isArray(_.get(info, ["v/h", "avg"]))) {
+        info["v/h"]["avg"].splice(i, 0, null);
+        info["v/h"]["min"].splice(i, 0, null);
+        info["v/h"]["max"].splice(i, 0, null);
       }
 
       if (_.isArray(_.get(info, ["a/p", "avg"]))) {
@@ -693,19 +738,35 @@
     }
 
     /*
-     *  湿度
+     * 相対湿度
      */
-    if (info["hum"]) {
-      plotAbstractDateCore("湿度",
-                           "hum-graph",
+    if (info["r/h"]) {
+      plotAbstractDateCore("湿度(RH)",
+                           "rh-graph",
                            info,
-                           "hum",
+                           "r/h",
                            "%{y:.1f}",
                            "%",
                            head,
                            tail,
-                           _.get(graphConfig, ["range", "hum", "min"]),
-                           _.get(graphConfig, ["range", "hum", "max"]));
+                           _.get(graphConfig, ["range", "r/h", "min"]),
+                           _.get(graphConfig, ["range", "r/h", "max"]));
+    }
+
+    /*
+     *  絶対湿度(容積)
+     */
+    if (info["v/h"]) {
+      plotAbstractDateCore("湿度(VH)",
+                           "vh-graph",
+                           info,
+                           "v/h",
+                           "%{y:.1f}",
+                           "g/m\u00b3",
+                           head,
+                           tail,
+                           _.get(graphConfig, ["range", "v/h", "min"]),
+                           _.get(graphConfig, ["range", "v/h", "max"]));
     }
 
     /*

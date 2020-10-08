@@ -1,0 +1,123 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+
+#
+# data copier for envlog that MySQL data to SQLite3 database file.
+#
+#   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+#
+
+require 'mysql2'
+require 'sqlite3'
+require 'pathname'
+require 'optparse'
+require 'yaml'
+require 'fileutils'
+
+BASE_DIR    = Pathname.new(File.expand_path(__FILE__)).dirname.parent
+DATA_DIR    = BASE_DIR + "data"
+LIB_DIR     = BASE_DIR + "lib" + "envlog"
+SCHEMA_FILE = DATA_DIR + "schema.yml"
+OUTPUT_FILE = "database.db"
+
+require "#{LIB_DIR + "version"}"
+require "#{LIB_DIR + "misc"}"
+require "#{LIB_DIR + "schema"}"
+require "#{LIB_DIR + "config"}"
+
+using TimeStringFormatChanger
+
+OptionParser.new { |opt|
+  opt.version = EnvLog::VERSION
+
+  opt.on("-c FILE", "--config-file=FILE") { |file|
+    $config_file = file
+  }
+
+  opt.parse!(ARGV)
+
+  raise("configuration file is not specified.") if not $config_file
+}
+
+EnvLog::Schema.read(SCHEMA_FILE)
+EnvLog::Config.read($config_file)
+
+case
+when EnvLog::Config.has?(:database, :mysql)
+  FileUtils.remove_entry(OUTPUT_FILE, :force => true)
+
+  begin
+    cred = EnvLog::Config.dig(:database, :mysql)
+    src  = Mysql2::Client.new(cred) 
+    dst  = SQLite3::Database.new(OUTPUT_FILE)
+    ddl  = YAML.load_file(DATA_DIR + "ddl" + "sqlite3.yml")
+
+    dst.transaction
+
+    #
+    # SENSOR TABLE
+    #
+    dst.execute(ddl.dig("sensor_table", "v1"))
+
+    st1 = dst.prepare(<<~EOQ)
+      insert or ignore into SENSOR_TABLE values (?, ?, ?, ?, ?, ?, ?, ?);
+    EOQ
+
+    rows = src.query(<<~EOQ, :as => :array)
+      select * from SENSOR_TABLE;
+    EOQ
+
+    rows.each { |row|
+      st1.execute(row[0],
+                  row[1],
+                  row[2].to_s,
+                  row[3].to_s,
+                  row[4],
+                  row[5],
+                  row[6],
+                  row[7])
+    }
+
+    #
+    # DATA TABLE
+    #
+    dst.execute(ddl.dig("data_table", "v1"))
+
+    st2 = dst.prepare(<<~EOQ)
+      insert or ignore into DATA_TABLE values (?, ?, ?, ?, ?, ?, ?, ?);
+    EOQ
+
+    rows = src.query(<<~EOQ, :as => :array)
+      select * from DATA_TABLE;
+    EOQ
+
+    rows.each { |row|
+      st2.execute(row[0],
+                  row[1].to_s,
+                  row[2],
+                  row[3],
+                  row[4],
+                  row[5],
+                  row[6],
+                  row[7])
+    }
+
+    dst.commit
+
+  rescue => e
+    dst.rollback
+    raise(e)
+
+  ensure
+    st1&.close
+    st2&.close
+    src&.close
+    dst&.close
+  end
+
+when EnvLog::Config.has?(:database, :sqlite3)
+  raise("supported only mysql configuration")
+
+else
+  raise("really?")
+end
