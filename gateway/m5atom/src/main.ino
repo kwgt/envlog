@@ -99,7 +99,7 @@ loop()
     if (f & F_HUMIDITY) {
       hum  = U16(cstr + pos) / 100.0;
       pos += 2;
-      Serial.printf(",\"hum\":%.1f", hum);
+      Serial.printf(",\"r/h\":%.1f", hum);
     }
 
     if (f & F_AIRPRES) {

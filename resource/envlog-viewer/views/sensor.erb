@@ -30,12 +30,21 @@
             </div>
           </div>
 
-          <div id="humidity"
-              class="d-flex flex-row justify-content-center humidity">
-            <div class="label">湿度</div>
+          <div id="relative-humidity"
+              class="d-flex flex-row justify-content-center relative-humidity">
+            <div class="label">湿度(RH)</div>
             <div class="value">
               <span class="number text-right"></span>
               <span class="unit">&#x0025;</span>
+            </div>
+          </div>
+
+          <div id="volumetric-humidity"
+              class="d-flex flex-row justify-content-center volumetric-humidity">
+            <div class="label">湿度(VH)</div>
+            <div class="value">
+              <span class="number text-right"></span>
+              <span class="unit">g/m&#x00b3;</span>
             </div>
           </div>
 
@@ -100,7 +109,8 @@
         </div>
 
         <div id="temp-graph" class="temperature"></div>
-        <div id="hum-graph" class="humidity"></div>
+        <div id="rh-graph" class="relative-humidity"></div>
+        <div id="vh-graph" class="volumetric-humidity"></div>
         <div id="air-graph" class="air-pressure"></div>
       </div>
     </div>
