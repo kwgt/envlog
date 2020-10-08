@@ -436,6 +436,11 @@
       duplicateTail(info["r/h"]["max"]);
     }
 
+    if (_.isArray(_.get(info, ["v/h", "avg"]))) {
+      duplicateTail(info["v/h"]["min"]);
+      duplicateTail(info["v/h"]["max"]);
+    }
+
     if (_.isArray(_.get(info, ["a/p", "avg"]))) {
       duplicateTail(info["a/p"]["min"]);
       duplicateTail(info["a/p"]["max"]);
@@ -458,6 +463,10 @@
 
       if (_.isArray(_.get(info, ["r/h", "avg"]))) {
         info["r/h"]["avg"].splice(i, 0, null);
+      }
+
+      if (_.isArray(_.get(info, ["v/h", "avg"]))) {
+        info["v/h"]["avg"].splice(i, 0, null);
       }
 
       if (_.isArray(_.get(info, ["a/p", "avg"]))) {
@@ -484,6 +493,11 @@
       if (_.isArray(_.get(info, ["r/h", "avg"]))) {
         info["r/h"]["min"].splice(i, 0, null);
         info["r/h"]["max"].splice(i, 0, null);
+      }
+
+      if (_.isArray(_.get(info, ["v/h", "avg"]))) {
+        info["v/h"]["min"].splice(i, 0, null);
+        info["v/h"]["max"].splice(i, 0, null);
       }
 
       if (_.isArray(_.get(info, ["a/p", "avg"]))) {
