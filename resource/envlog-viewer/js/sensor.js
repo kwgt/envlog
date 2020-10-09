@@ -230,6 +230,10 @@
         src["r/h"].splice(i, 0, null)
       }
 
+      if (src["v/h"]) {
+        src["v/h"].splice(i, 0, null)
+      }
+
       if (src["a/p"]) {
         src["a/p"].splice(i, 0, null)
       }
