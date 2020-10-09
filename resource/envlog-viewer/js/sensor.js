@@ -10,6 +10,50 @@
   var sensorId;
   var now;
 
+  const VH_OPT_SHAPES = [
+    {
+      type:      "rect",
+      xref:      "paper",
+      x0:        0.0,
+      y0:        0.0,
+      x1:        1.0,
+      y1:        7.0,
+      opacity:   0.05,
+      line:      {color: "rgba(0,0,0,0)", width:0},
+      fillcolor: "rgb(255, 0, 0)"
+    },{
+      type:      "rect",
+      xref:      "paper",
+      x0:        0.0,
+      y0:        0.7,
+      x1:        1.0,
+      y1:        11.0,
+      opacity:   0.05,
+      line:      {color: "rgba(0,0,0,0)", width:0},
+      fillcolor: "rgb(255, 255, 0)"
+    },{
+      type:      "rect",
+      xref:      "paper",
+      x0:        0.0,
+      y0:        11.0,
+      x1:        1.0,
+      y1:        17.0,
+      opacity:   0.05,
+      line:      {color: "rgba(0,0,0,0)", width:0},
+      fillcolor: "rgb(0, 128, 255)"
+    },{
+      type:      "rect",
+      xref:      "paper",
+      x0:        0.0,
+      y0:        17.0,
+      x1:        1.0,
+      y1:        100.0,
+      opacity:   0.05,
+      line:      {color: "rgba(0,0,0,0)", width:0},
+      fillcolor: "rgb(0, 255, 255)"
+    }
+  ];
+
   function setSensorValue(info) {
     if (info["temp"]) {
       $('div#temperature > div.value > span.number')
@@ -40,7 +84,7 @@
     }
   }
 
-  function plot2Day(name, targ, info, key, fmt, suffix, yMin, yMax) {
+  function plot2Day(name, targ, info, key, fmt, suffix, yMin, yMax, optShapes) {
     var trace1;
     var trace2;
     var trace3;
@@ -52,6 +96,7 @@
     var tmMin;
     var tmMax;
     var layout;
+    var shapes;
 
     trace1 = {
       name:          "測定値",
@@ -101,6 +146,32 @@
 
     data   = [trace1, trace2, trace3]
 
+    shapes = [
+      {
+        type:     "line",
+        xref:     "paper",
+        x0:       0.0,
+        y0:       min,
+        x1:       1.0,
+        y1:       min,
+        opacity:  0.75,
+        line:     {color:"blue", dash:"dashdot", width:0.5}
+      },{        
+        type:     "line",
+        xref:     "paper",
+        x0:       0.0,
+        y0:       max,
+        x1:       1.0,
+        y1:       max,
+        opacity:  0.75,
+        line:     {color:"red", dash:"dashdot", width:0.5}
+      }
+    ];
+
+    if (optShapes) {
+      shapes = _.concat(optShapes, ...shapes);
+    }
+
     layout = {
       title:        {text:name, side:"left", x:"auto", y:0.95},
       modebar:      {orientation:"h"},
@@ -118,25 +189,7 @@
         range:      [yMin, yMax],
       },
       margin:       {t:40, b:70, r:20},
-      shapes: [
-        {
-          type:     "line",
-          x0:       head,
-          y0:       min,
-          x1:       tail,
-          y1:       min,
-          opacity:  0.75,
-          line:     {color:"blue", dash:"dashdot", width:0.5}
-        },{        
-          type:     "line",
-          x0:       head,
-          y0:       max,
-          x1:       tail,
-          y1:       max,
-          opacity:  0.75,
-          line:     {color:"red", dash:"dashdot", width:0.5}
-        }
-      ]
+      shapes:       shapes,
     }
 
     opt = {
@@ -231,7 +284,8 @@
                "%{y:.1f}",
                "g/m\u00b3",
                _.get(graphConfig, ["range", "v/h", "min"]),
-               _.get(graphConfig, ["range", "v/h", "max"]));
+               _.get(graphConfig, ["range", "v/h", "max"]),
+               VH_OPT_SHAPES);
     } else {
       $("div#vh-graph").remove();
     }
@@ -254,7 +308,8 @@
   }
 
   function plotAbstractHourCore(name, targ, info, key,
-                                fmt, suffix, xMin, xMax, yMin, yMax) {
+                                fmt, suffix, xMin, xMax, yMin, yMax,
+                                optShapes) {
     var trace1;
     var trace2;
     var trace3;
@@ -266,6 +321,7 @@
     var dtMax;
     var data;
     var layout;
+    var shapes;
 
     min    = _.min(info[key]["min"]);
     max    = _.max(info[key]["max"]);
@@ -331,6 +387,31 @@
     };
 
     data   = [trace1, trace2, trace3, trace4, trace5];
+    shapes = [
+      {
+        type:     "line",
+        xref:     "paper",
+        x0:       0.0,
+        y0:       min,
+        x1:       1.0,
+        y1:       min,
+        opacity:  0.5,
+        line:     {color:"blue", dash:"dashdot", width:0.5}
+      },{        
+        type:     "line",
+        xref:     "paper",
+        x0:       0.0,
+        y0:       max,
+        x1:       1.0,
+        y1:       max,
+        opacity:  0.5,
+        line:     {color:"red", dash:"dashdot", width:0.5}
+      }
+    ];
+
+    if (optShapes) {
+      shapes = _.concat(optShapes, ...shapes);
+    }
 
     layout = {
       title:        {text:name, side:"left", x:"auto", y:0.95},
@@ -349,25 +430,7 @@
         tickfont:   {family:"Roboto mono"},
       },
       margin:       {t:40, b:70, r:20},
-      shapes: [
-        {
-          type:     "line",
-          x0:       xMin,
-          y0:       min,
-          x1:       xMax,
-          y1:       min,
-          opacity:  0.5,
-          line:     {color:"blue", dash:"dashdot", width:0.5}
-        },{        
-          type:     "line",
-          x0:       xMin,
-          y0:       max,
-          x1:       xMax,
-          y1:       max,
-          opacity:  0.5,
-          line:     {color:"red", dash:"dashdot", width:0.5}
-        }
-      ]
+      shapes:       shapes, 
     };
 
     Plotly.newPlot(targ, data, layout);
@@ -436,6 +499,11 @@
       duplicateTail(info["r/h"]["max"]);
     }
 
+    if (_.isArray(_.get(info, ["v/h", "avg"]))) {
+      duplicateTail(info["v/h"]["min"]);
+      duplicateTail(info["v/h"]["max"]);
+    }
+
     if (_.isArray(_.get(info, ["a/p", "avg"]))) {
       duplicateTail(info["a/p"]["min"]);
       duplicateTail(info["a/p"]["max"]);
@@ -458,6 +526,10 @@
 
       if (_.isArray(_.get(info, ["r/h", "avg"]))) {
         info["r/h"]["avg"].splice(i, 0, null);
+      }
+
+      if (_.isArray(_.get(info, ["v/h", "avg"]))) {
+        info["v/h"]["avg"].splice(i, 0, null);
       }
 
       if (_.isArray(_.get(info, ["a/p", "avg"]))) {
@@ -486,6 +558,11 @@
         info["r/h"]["max"].splice(i, 0, null);
       }
 
+      if (_.isArray(_.get(info, ["v/h", "avg"]))) {
+        info["v/h"]["min"].splice(i, 0, null);
+        info["v/h"]["max"].splice(i, 0, null);
+      }
+
       if (_.isArray(_.get(info, ["a/p", "avg"]))) {
         info["a/p"]["min"].splice(i, 0, null);
         info["a/p"]["max"].splice(i, 0, null);
@@ -512,7 +589,7 @@
      *  相対湿度
      */
     if (info["r/h"]) {
-      plotAbstractHourCore("相対(RH)",
+      plotAbstractHourCore("湿度(RH)",
                            "rh-graph",
                            info,
                            "r/h",
@@ -537,7 +614,8 @@
                            head,
                            tail,
                            _.get(graphConfig, ["range", "v/h", "min"]),
-                           _.get(graphConfig, ["range", "v/h", "max"]));
+                           _.get(graphConfig, ["range", "v/h", "max"]),
+                           VH_OPT_SHAPES);
     }
 
     /*
@@ -558,7 +636,8 @@
   }
 
   function plotAbstractDateCore(name, targ, info, key, fmt,
-                                suffix, xMin, xMax, yMin, yMax) {
+                                suffix, xMin, xMax, yMin, yMax,
+                                optShapes) {
     var trace1;
     var trace2;
     var trace3;
@@ -570,6 +649,7 @@
     var dtMax;
     var data;
     var layout;
+    var shapes;
 
     min    = _.min(info[key]["min"]);
     max    = _.max(info[key]["max"]);
@@ -635,6 +715,32 @@
     };
 
     data   = [trace1, trace2, trace3, trace4, trace5];
+    shapes = [
+      {
+        type:     "line",
+        xref:     "paper",
+        x0:       0.0,
+        y0:       min,
+        x1:       1.0,
+        y1:       min,
+        opacity:  0.5,
+        line:     {color:"blue", dash:"dashdot", width:0.5}
+      },{        
+        type:     "line",
+        xref:     "paper",
+        x0:       0.0,
+        y0:       max,
+        x1:       1.0,
+        y1:       max,
+        opacity:  0.5,
+        line:     {color:"red", dash:"dashdot", width:0.5}
+      }
+    ];
+
+    if (optShapes) {
+      shapes = _.concat(optShapes, ...shapes);
+    }
+
 
     layout = {
       title:        {text:name, side:"left", x:"auto", y:0.95},
@@ -653,25 +759,7 @@
         tickfont:   {family:"Roboto mono"},
       },
       margin:       {t:40, b:70, r:20},
-      shapes: [
-        {
-          type:     "line",
-          x0:       xMin,
-          y0:       min,
-          x1:       xMax,
-          y1:       min,
-          opacity:  0.5,
-          line:     {color:"blue", dash:"dashdot", width:0.5}
-        },{        
-          type:     "line",
-          x0:       xMin,
-          y0:       max,
-          x1:       xMax,
-          y1:       max,
-          opacity:  0.5,
-          line:     {color:"red", dash:"dashdot", width:0.5}
-        }
-      ]
+      shapes:       shapes,
     };
 
     Plotly.newPlot(targ, data, layout);
@@ -766,7 +854,8 @@
                            head,
                            tail,
                            _.get(graphConfig, ["range", "v/h", "min"]),
-                           _.get(graphConfig, ["range", "v/h", "max"]));
+                           _.get(graphConfig, ["range", "v/h", "max"]),
+                           VH_OPT_SHAPES);
     }
 
     /*
