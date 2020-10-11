@@ -21,8 +21,17 @@ module EnvLog
       def open_database
         db = Mysql2::Client.new(DB_CRED) 
         db.query_options.merge!(:as => :array)
+        db.query("set autocommit = 0;")
 
         class << db
+          def exist_table?(name)
+            rows = self.query(<<~EOQ)
+              show tables like '#{name}';
+            EOQ
+
+            return (rows.count > 0)
+          end
+
           def transaction
             self.query("start transaction;")
           end
@@ -389,43 +398,15 @@ module EnvLog
       begin
         db.transaction
 
-        #
-        # センサー定義テーブル
-        #   ※MariaDBでは、timestampを含むテーブルを作成した場合、Extraに
-        #     勝手に"on update CURRENT_TIMESTAMP"が付与されてしまうため、
-        #     update 時に予期せぬ動作をすることがある。これを防ぐためデフ
-        #     ォルト設定を行っている(default CURENT_TIMESTAMPを指定すると
-        #     Extraが付与されない)。
-        #
-        db.query(<<~EOQ)
-          create table if not exists SENSOR_TABLE (
-            addr         varchar(64) unique, /* デバイスアドレス          */
-            id           char(36) unique,    /* センサーID (UUID)         */
-            ctime        timestamp default CURRENT_TIMESTAMP, /* 登録日時 */
-            mtime        timestamp default CURRENT_TIMESTAMP, /* 更新日時 */
-            descr        text,               /* 端末概要                  */
-            `pow-source` varchar(16),        /* 外部電源の種別            */
-            state        varchar(16),        /* 状態                      */
-            `last-seq`   integer,            /* 最終シーケンス番号        */
+        ddl = YAML.load_file(DATA_DIR + "ddl" + "mysql.yml")
 
-            primary key (id)
-          );
-        EOQ
+        if not db.exist_table?("SENSOR_TABLE")
+          db.query(ddl.dig("sensor_table", "v1"))
+        end
 
-        db.query(<<~EOQ)
-          create table if not exists DATA_TABLE (
-            sensor     char(36),           /* センサーID (UUID)           */
-            time       timestamp,          /* 記録日時                    */
-            temp       float,              /* 気温                        */
-            humidity   float,              /* 湿度                        */
-            `air-pres` float,              /* 気圧                        */
-            rssi       integer,            /* 計測時のRSSI                */
-            vbat       float,              /* 計測時の電池電圧            */
-            vbus       float,              /* 計測時の外部電源電圧        */
-
-            primary key (time, sensor)
-          );
-        EOQ
+        if not db.exist_table?("DATA_TABLE_V2")
+          db.query(ddl.dig("data_table", "v2"))
+        end
 
         db.commit
 

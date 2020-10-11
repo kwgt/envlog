@@ -60,7 +60,7 @@
 
     static [setupHandler]() {
       this.$modal
-        .find('input#device-description')
+        .find('input#device-location')
           .on('change', (e) => this[onChangeDescription]($(e.target)))
         .end()
         .find('div#device-power-source-menu > a.dropdown-item')
@@ -207,7 +207,7 @@
             .find('input#device-state')
               .val(info["state"])
             .end()
-            .find('input#device-description')
+            .find('input#device-location')
               .val(info["descr"])
             .end()
             .find('div.modal-footer')

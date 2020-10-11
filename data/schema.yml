@@ -258,7 +258,11 @@ CONFIG:
           properties:
             temp:
               <<: *RANGE
-            hum:
+            r/h:
+              <<: *RANGE
+            v/h:
+              <<: *RANGE
+            a/h:
               <<: *RANGE
             a/p:
               <<: *RANGE
@@ -312,18 +316,23 @@ INPUT_DATA:
     temp:
       description: >-
         気温データ(摂氏)格納されます。
-        ※現時点ではDHT12の計測範囲を受け付けます
       type: number
       minimum: -20.0
       maximum: 60.0
 
-    hum:
+    r/h:
       description: >-
-        湿度データが(%RH)で格納されます。
-        ※現時点ではDHT12の計測範囲を受け付けます
+        相対湿度データが(%)で格納されます。
       type: number
-      minimum: 20
-      maximum: 95
+      minimum: 0
+      maximum: 100
+
+    v/h:
+      description: >-
+        絶対湿度データが(g/m^3)で格納されます。
+      type: number
+      minimum: 0
+      maximum: 100
 
     a/p:
       description: >-
