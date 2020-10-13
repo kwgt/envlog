@@ -654,7 +654,7 @@ module EnvLog
         EM.defer {
           begin
             db = DBA.open
-            df.resolve(db.get_abstracted_day_data(id, tm, 365))
+            df.resolve(db.get_abstracted_week_data(id, tm, 365))
 
           rescue => e
             df.reject(e.message)
