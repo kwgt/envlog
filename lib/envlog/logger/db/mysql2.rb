@@ -93,11 +93,12 @@ module EnvLog
           Log.debug("mysql2") {"insert #{ts}.#{id[0,8]}"}
 
           db.query(<<~EOQ)
-            insert into DATA_TABLE
+            insert into DATA_TABLE_V2
                 values ("#{id}",
                         "#{ts}",
                         #{data["temp"] || "NULL"},
-                        #{data["hum"]  || "NULL"},
+                        #{data["r/h"]  || "NULL"},
+                        #{data["v/h"]  || "NULL"},
                         #{data["a/p"]  || "NULL"},
                         #{data["rssi"] || "NULL"},
                         #{data["vbat"] || "NULL"},
