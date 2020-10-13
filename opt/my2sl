@@ -59,48 +59,100 @@ when EnvLog::Config.has?(:database, :mysql)
     #
     dst.execute(ddl.dig("sensor_table", "v1"))
 
-    st1 = dst.prepare(<<~EOQ)
-      insert or ignore into SENSOR_TABLE values (?, ?, ?, ?, ?, ?, ?, ?);
-    EOQ
+    begin
+      st = dst.prepare(<<~EOQ)
+        insert or ignore into SENSOR_TABLE values (?, ?, ?, ?, ?, ?, ?, ?);
+      EOQ
 
-    rows = src.query(<<~EOQ, :as => :array)
-      select * from SENSOR_TABLE;
-    EOQ
+      rows = src.query(<<~EOQ, :as => :array)
+        select * from SENSOR_TABLE;
+      EOQ
 
-    rows.each { |row|
-      st1.execute(row[0],
-                  row[1],
-                  row[2].to_s,
-                  row[3].to_s,
-                  row[4],
-                  row[5],
-                  row[6],
-                  row[7])
-    }
+      rows.each { |row|
+        st.execute(row[0],
+                    row[1],
+                    row[2].to_s,
+                    row[3].to_s,
+                    row[4],
+                    row[5],
+                    row[6],
+                    row[7])
+      }
+
+    ensure
+      st&.close
+      st = nil
+    end
 
     #
     # DATA TABLE
     #
-    dst.execute(ddl.dig("data_table", "v1"))
 
-    st2 = dst.prepare(<<~EOQ)
-      insert or ignore into DATA_TABLE values (?, ?, ?, ?, ?, ?, ?, ?);
-    EOQ
+    rows = src.query("show tables like 'DATA_TABLE'", :as => :array)
+    if rows.count > 0
+      dst.execute(ddl.dig("data_table", "v1"))
 
-    rows = src.query(<<~EOQ, :as => :array)
-      select * from DATA_TABLE;
-    EOQ
+      begin
+        st = dst.prepare(<<~EOQ)
+          insert or ignore into DATA_TABLE values (?, ?, ?, ?, ?, ?, ?, ?);
+        EOQ
 
-    rows.each { |row|
-      st2.execute(row[0],
-                  row[1].to_s,
-                  row[2],
-                  row[3],
-                  row[4],
-                  row[5],
-                  row[6],
-                  row[7])
-    }
+        rows = src.query(<<~EOQ, :as => :array)
+          select * from DATA_TABLE;
+        EOQ
+
+        rows.each { |row|
+          st.execute(row[0],
+                      row[1].to_s,
+                      row[2],
+                      row[3],
+                      row[4],
+                      row[5],
+                      row[6],
+                      row[7])
+        }
+
+      ensure
+        st&.close
+        st = nil
+      end
+    end
+
+    #
+    # DATA TABLE(version 2)
+    #
+
+    rows = src.query("show tables like 'DATA_TABLE_V2'", :as => :array)
+    if rows.count > 0
+      dst.execute(ddl.dig("data_table", "v2"))
+
+      begin
+        st = dst.prepare(<<~EOQ)
+          insert or ignore
+              into DATA_TABLE_V2 values (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        EOQ
+
+        rows = src.query(<<~EOQ, :as => :array)
+          select * from DATA_TABLE_V2;
+        EOQ
+
+        rows.each { |row|
+          st.execute(row[0],
+                      row[1].to_s,
+                      row[2],
+                      row[3],
+                      row[4],
+                      row[5],
+                      row[6],
+                      row[7],
+                      row[8])
+        }
+
+      ensure
+        st&.close
+        st = nil
+      end
+    end
 
     dst.commit
 
@@ -109,8 +161,6 @@ when EnvLog::Config.has?(:database, :mysql)
     raise(e)
 
   ensure
-    st1&.close
-    st2&.close
     src&.close
     dst&.close
   end

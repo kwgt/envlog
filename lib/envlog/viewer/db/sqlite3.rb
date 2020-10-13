@@ -126,7 +126,7 @@ module EnvLog
 
       def get_time_series_data(id, tm, span)
         if tm == "now"
-          rows = @db.execute2(<<~EOQ, id, "now")
+          rows = @db.execute(<<~EOQ, id, "now")
             select time, temp, `r/h, `v/h, `a/p`
                 from DATA_TABLE_V2
                 where sensor = ? and
@@ -134,7 +134,7 @@ module EnvLog
           EOQ
 
         else
-          rows = @db.execute2(<<~EOQ, id, tm, tm)
+          rows = @db.execute(<<~EOQ, id, tm, tm)
             select time, temp, `r/h`, `v/h`, `a/p`
                 from DATA_TABLE_V2
                 where sensor = ? and
@@ -342,6 +342,109 @@ module EnvLog
         return ret
       end
 
+      def get_abstracted_week_data(id, tm, span)
+        date  = Date.parse(tm)
+        head  = (date - (span - 1)).strftime("%Y-%m-%d")
+        tail  = date.strftime("%Y-%m-%d")
+
+        rows1 = @db.execute(<<~EOQ, id, head, tail)
+          select date(time, "-6 days", "weekday 1") as day,
+                 avg(temp), avg(`r/h`), avg(`v/h`), avg(`a/p`)
+              from DATA_TABLE_V2
+              where sensor = ? and (date(time) between ? and ?)
+              group by day order by day;
+        EOQ
+
+        rows2 = @db.execute(<<~EOQ, id, head, tail)
+          select strftime("%Y-%m-%d", time) as day,
+                 min(temp),  max(temp),
+                 min(`r/h`), max(`r/h`),
+                 min(`v/h`), max(`v/h`),
+                 min(`a/p`), max(`a/p`)
+              from DATA_TABLE_V2
+              where sensor = ? and
+                    (day between ? and ?)
+              group by day order by day;
+        EOQ
+
+        week = rows1.inject([]) {|m, n| m << n[0]}
+        date = rows2.inject([]) {|m, n| m << n[0]}
+
+        if rows1.first and rows1.first[1]
+          temp = {:min => [], :max => [], :avg => []}
+
+          rows1.each { |row|
+            temp[:avg] << row[1]
+          }
+
+          rows2.each { |row|
+            temp[:min] << row[1]
+            temp[:max] << row[2]
+          }
+
+        else
+          temp = nil
+        end
+
+        if rows1.first and rows1.first[2]
+          rh = {:min => [], :max => [], :avg => []}
+
+          rows1.each { |row|
+            rh[:avg] << row[2]
+          }
+
+          rows2.each { |row|
+            rh[:min] << row[3]
+            rh[:max] << row[4]
+          }
+
+        else
+          rh = nil
+        end
+
+        if rows1.first and rows1.first[3]
+          vh = {:min => [], :max => [], :avg => []}
+
+          rows1.each { |row|
+            vh[:avg] << row[3]
+          }
+
+          rows2.each { |row|
+            vh[:min] << row[5]
+            vh[:max] << row[6]
+          }
+
+        else
+          vh = nil
+        end
+
+        if rows1.first and rows1.first[4]
+          ap = {:min => [], :max => [], :avg => []}
+
+          rows1.each { |row|
+            ap[:avg] << row[4]
+          }
+
+          rows2.each { |row|
+            ap[:min] << row[7]
+            ap[:max] << row[8]
+          }
+
+        else
+          ap = nil
+        end
+
+        ret = {
+          :week  => week,
+          :date  => date,
+          :temp  => temp,
+          :"r/h" => rh,
+          :"v/h" => vh,
+          :"a/p" => ap
+        }
+
+        return ret
+      end
 
       def poll_sensor
         rows = @db.execute(<<~EOQ)
