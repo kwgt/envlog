@@ -75,10 +75,21 @@
               <div class="input-group-text">
                 <%= icon.("calendar-date") %>
               </div>
+
+              <button id="prev-date" class="btn btn-sm btn-outline-secondary">
+                <%= icon.("arrow-left-circle") %>
+              </button>
             </div>
+
             <input id="target-date" type="text"
                 class="form-control form-control-sm">
             </input>
+
+            <div class="input-group-append">
+              <button id="next-date" class="btn btn-sm btn-outline-secondary">
+                <%= icon.("arrow-right-circle") %>
+              </button>
+            </div>
           </div>
 
           <div id="mode-radio" class="float-left">

@@ -32,8 +32,31 @@ div#result {
   }
 }
 
+button#prev-date {
+  border-top-color: #ced4da;
+  border-left: none;
+  border-right: none;
+  border-bottom-color: #ced4da;
+}
+
 input#target-date {
   width: 8em;
+  border-left: none;
+  border-right: none;
+  text-align: center;
+}
+
+button#next-date {
+  border-top-color: #ced4da;
+  border-left: none;
+  border-right-color: #ced4da;
+  border-bottom-color: #ced4da;
+}
+
+
+
+button#prev-date {
+
 }
 
 div#mode-radio {
