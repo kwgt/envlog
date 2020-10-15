@@ -977,7 +977,9 @@
   }
 
   function lockUpdate () {
+    $('button#prev-date').prop("disabled", true)
     $('input#target-date').prop("disabled", true)
+    $('button#next-date').prop("disabled", true)
     $('div.pretty > input').prop("disabled", true);
     $('input#auto-update').prop("disabled", true)
     updateGraph.locked = true;
@@ -985,7 +987,9 @@
 
   function unlockUpdate() {
     updateGraph.locked = false;
+    $('button#prev-date').prop("disabled", false)
     $('input#target-date').prop("disabled", false);
+    $('button#next-date').prop("disabled", false)
     $('div.pretty > input').prop("disabled", false);
 
     if (targetDate) {
@@ -1045,9 +1049,94 @@
     }
   }
 
+  function changeDate(obj) {
+    var date;
+
+    date = moment(obj).format("YYYY-MM-DD");
+
+    if (date != today) {
+      $('input#auto-update')
+        .prop("disabled", true)
+        .prop("checked", false);
+      targetDate = date;
+
+    } else {
+      $('input#auto-update').prop('disabled', false);
+      targetDate = null;
+    }
+
+    $('input#target-date').val(date);
+
+    updateGraph();
+  }
+
   function setupForm() {
     $('input[name=mode]')
       .on('click', () => updateGraph());
+
+    $('button#prev-date')
+      .on('click', (e) => {
+        e.preventDefault();
+
+        switch ($('input[name=mode]:checked').val()) {
+        case "day":
+          delta = {days: 1};
+          break;
+
+        case "week":
+          delta = {weeks: 1};
+          break;
+
+        case "1month":
+          delta = {month: 1};
+          break;
+
+        case "3months":
+          delta = {months: 3};
+          break;
+
+        case "year":
+          delta = {years: 1};
+          break;
+
+        default:
+          throw("Really?");
+        }
+
+        changeDate(moment(targetDate || today).subtract(delta));
+      });
+
+    $('button#next-date')
+      .on('click', (e) => {
+        e.preventDefault();
+
+        switch ($('input[name=mode]:checked').val()) {
+        case "day":
+          delta = {days: 1};
+          break;
+
+        case "week":
+          delta = {weeks: 1};
+          break;
+
+        case "1month":
+          delta = {month: 1};
+          break;
+
+        case "3months":
+          delta = {months: 3};
+          break;
+
+        case "year":
+          delta = {years: 1};
+          break;
+
+        default:
+          throw("Really?");
+        }
+
+        changeDate(moment(targetDate || today).add(delta));
+      });
 
     $('input#target-date')
       .on('keydown', (e) => false)
@@ -1075,27 +1164,8 @@
         showMonthAfterYear: true,
 
         onSelect: (d) => {
-          date = moment(d).format("YYYY-MM-DD");
-
-          if (date != today) {
-            $('input#auto-update')
-              .prop("disabled", true)
-              .prop("checked", false);
-            targetDate = date;
-
-          } else {
-            $('input#auto-update').prop('disabled', false);
-            targetDate = null;
-          }
-
-          updateGraph();
+          changeDate(d);
         },
-      });
-
-    $('button#date-select')
-      .on('click', (e) => {
-        e.preventDefault();
-        $('input#target-date').eq(0).pikaday('show');
       });
   }
 
