@@ -27,7 +27,7 @@ nav {
 
 div#result {
   div.label {
-    font-size: 4vmin;
+    font-size: 3.5vmin;
     font-weight: 700;
     width: 20%;
   }
@@ -37,13 +37,14 @@ div#result {
 
     span.number {
       display: inline-block;
-      width: 10rem;
-      font-size: 4vmin;
+      width: calc(100% - 5rem);
+      font-size: 3.5vmin;
       font-family: "Roboto mono";
     }
 
     span.unit {
       font-size: 2vmin;
+      width: 5rem;
     }
   }
 }
