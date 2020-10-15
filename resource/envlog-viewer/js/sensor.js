@@ -8,7 +8,28 @@
   var graphConfig; 
   var session;
   var sensorId;
-  var now;
+  var today;
+  var targetDate;
+
+  const I18N_TABLE = {
+    pikaday: {
+      previousMonth: '前の月',
+      nextMonth:     '次の月',
+
+      months: [
+        '1月', '2月', '3月',  '4月',  '5月',  '6月',
+        '7月', '8月', '9月',' 10月', '11月', '12月',
+      ],
+
+      weekdays: [
+        '日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'
+      ],
+
+      weekdaysShort : ['日','月','火','水','木','金','土']
+    },
+
+    yearSuffix: '年'
+  }
 
   const VH_OPT_SHAPES = [
     {
@@ -89,6 +110,7 @@
     var trace2;
     var trace3;
     var data;
+    var date;
     var head;
     var tail;
     var min;
@@ -109,8 +131,9 @@
       hovertemplate: `${fmt}${suffix}`,
     };
 
-    head   = moment(now).subtract(2, 'days').format("YYYY-MM-DD HH:mm:ss");
-    tail   = now;
+    date   = targetDate || today;
+    head   = moment(date).subtract(1, 'days').format("YYYY-MM-DD");
+    tail   = moment(date).add(1, 'days').format("YYYY-MM-DD");
     min    = _.min(info[key]);
     max    = _.max(info[key]);
     tmMin  = _.get(info, ["time", _.indexOf(info[key], min)]);
@@ -240,6 +263,17 @@
     });
   }
 
+  function postPlotGraph(info) {
+    /*
+     * 描画するものがなかった場合はメッセージを表示
+     */
+    if (info["temp"] || info["r/h"] || info["v/h"] || info["a/p"]) {
+      $('div#nodata-message').addClass("d-none");
+    } else {
+      $('div#nodata-message').removeClass("d-none");
+    }
+  }
+
   function plotDayData(info) {
     Plotly.setPlotConfig({locale: 'ja-JP'})
 
@@ -249,6 +283,8 @@
      * 気温
      */
     if (info["temp"]) {
+      $("div#temp-graph").show();
+
       plot2Day("気温",
                "temp-graph",
                info,
@@ -257,14 +293,17 @@
                "\u00B0C",
                _.get(graphConfig, ["range", "temp", "min"]),
                _.get(graphConfig, ["range", "temp", "max"]));
+
     } else {
-      $("div#temp-graph").remove();
+      $("div#temp-graph").hide();
     }
 
     /*
      *  相対湿度
      */
     if (info["r/h"]) {
+      $("div#rh-graph").show();
+
       plot2Day("湿度(RH)",
                "rh-graph",
                info,
@@ -273,14 +312,17 @@
                "%",
                _.get(graphConfig, ["range", "r/h", "min"]),
                _.get(graphConfig, ["range", "r/h", "max"]));
+
     } else {
-      $("div#rh-graph").remove();
+      $("div#rh-graph").hide();
     }
 
     /*
      *  絶対湿度(容積)
      */
     if (info["v/h"]) {
+      $("div#vh-graph").show();
+
       plot2Day("湿度(VH)",
                "vh-graph",
                info,
@@ -290,14 +332,17 @@
                _.get(graphConfig, ["range", "v/h", "min"]),
                _.get(graphConfig, ["range", "v/h", "max"]),
                VH_OPT_SHAPES);
+
     } else {
-      $("div#vh-graph").remove();
+      $("div#vh-graph").hide();
     }
 
     /*
      *  気圧
      */
     if (info["a/p"]) {
+      $("div#air-graph").show();
+
       plot2Day("気圧",
                "air-graph",
                info,
@@ -306,9 +351,12 @@
                "hpa",
                _.get(graphConfig, ["range", "a/p", "min"]),
                _.get(graphConfig, ["range", "a/p", "max"]));
+
     } else {
-      $("div#air-graph").remove();
+      $("div#air-graph").hide();
     }
+
+    postPlotGraph(info);
   }
 
   function plotAbstractHourCore(name, targ, info, key,
@@ -507,14 +555,17 @@
   }
 
   function plotAbstractHourData(info, span) {
+    var date;
     var head;
     var tail;
     var chams;
 
-    head   = moment(now).subtract(span - 1, "days").format("YYYY-MM-DD");
-    tail   = moment(now).add(1, "days").format("YYYY-MM-DD");
+    date   = targetDate || today;
+    head   = moment(date).subtract(span - 1, "days").format("YYYY-MM-DD");
+    tail   = moment(date).add(1, "days").format("YYYY-MM-DD");
 
-    info["date"].push(now);
+    info["date"].push(date);
+
     if (_.isArray(_.get(info, ["temp", "avg"]))) {
       duplicateTail(info["temp"]["min"]);
       duplicateTail(info["temp"]["max"]);
@@ -599,6 +650,8 @@
      * 気温
      */
     if (info["temp"]) {
+      $("div#temp-graph").show();
+
       plotAbstractHourCore("気温",
                            "temp-graph",
                            info,
@@ -609,12 +662,17 @@
                            tail,
                            _.get(graphConfig, ["range", "temp", "min"]),
                            _.get(graphConfig, ["range", "temp", "max"]));
+
+    } else {
+      $("div#temp-graph").hide();
     }
 
     /*
      *  相対湿度
      */
     if (info["r/h"]) {
+      $("div#rh-graph").show();
+
       plotAbstractHourCore("湿度(RH)",
                            "rh-graph",
                            info,
@@ -625,12 +683,17 @@
                            tail,
                            _.get(graphConfig, ["range", "r/h", "min"]),
                            _.get(graphConfig, ["range", "r/h", "max"]));
+
+    } else {
+      $("div#rh-graph").hide();
     }
 
     /*
      *  絶対湿度(容積)
      */
     if (info["v/h"]) {
+      $("div#vh-graph").show();
+
       plotAbstractHourCore("湿度(VH)",
                            "vh-graph",
                            info,
@@ -642,12 +705,17 @@
                            _.get(graphConfig, ["range", "v/h", "min"]),
                            _.get(graphConfig, ["range", "v/h", "max"]),
                            VH_OPT_SHAPES);
+
+    } else {
+      $("div#vh-graph").hide();
     }
 
     /*
      *  気圧
      */
     if (info["a/p"]) {
+      $("div#air-graph").show();
+
       plotAbstractHourCore("気圧",
                            "air-graph",
                            info,
@@ -658,7 +726,12 @@
                            tail,
                            _.get(graphConfig, ["range", "a/p", "min"]),
                            _.get(graphConfig, ["range", "a/p", "max"]));
+
+    } else {
+      $("div#air-graph").hide();
     }
+
+    postPlotGraph(info);
   }
 
   function plotAbstractDateCore(name, targ, info, key, fmt,
@@ -792,12 +865,14 @@
   }
 
   function plotAbstractDateData(info, span) {
+    var date;
     var head;
     var tail;
     var chams;
 
-    head   = moment(now).subtract(span - 1, "days").format("YYYY-MM-DD");
-    tail   = moment(now).format("YYYY-MM-DD");
+    date   = targetDate || today;
+    head   = moment(date).subtract(span - 1, "days").format("YYYY-MM-DD");
+    tail   = moment(date).add(1, "days").format("YYYY-MM-DD");
 
     /*
      * 欠損部分のマーキング
@@ -839,6 +914,8 @@
      * 気温
      */
     if (info["temp"]) {
+      $("div#temp-graph").show();
+
       plotAbstractDateCore("気温",
                            "temp-graph",
                            info,
@@ -849,12 +926,17 @@
                            tail,
                            _.get(graphConfig, ["range", "temp", "min"]),
                            _.get(graphConfig, ["range", "temp", "max"]));
+
+    } else {
+      $("div#temp-graph").hide();
     }
 
     /*
      * 相対湿度
      */
     if (info["r/h"]) {
+      $("div#rh-graph").show();
+
       plotAbstractDateCore("湿度(RH)",
                            "rh-graph",
                            info,
@@ -865,12 +947,17 @@
                            tail,
                            _.get(graphConfig, ["range", "r/h", "min"]),
                            _.get(graphConfig, ["range", "r/h", "max"]));
+
+    } else {
+      $("div#rh-graph").hide();
     }
 
     /*
      *  絶対湿度(容積)
      */
     if (info["v/h"]) {
+      $("div#vh-graph").show();
+
       plotAbstractDateCore("湿度(VH)",
                            "vh-graph",
                            info,
@@ -882,12 +969,17 @@
                            _.get(graphConfig, ["range", "v/h", "min"]),
                            _.get(graphConfig, ["range", "v/h", "max"]),
                            VH_OPT_SHAPES);
+
+    } else {
+      $("div#vh-graph").hide();
     }
 
     /*
      *  気圧
      */
     if (info["a/p"]) {
+      $("div#air-graph").show();
+
       plotAbstractDateCore("気圧",
                            "air-graph",
                            info,
@@ -898,7 +990,12 @@
                            tail,
                            _.get(graphConfig, ["range", "a/p", "min"]),
                            _.get(graphConfig, ["range", "a/p", "max"]));
+
+    } else {
+      $("div#air-graph").hide();
     }
+
+    postPlotGraph(info);
   }
 
   function plotAbstractWeekCore(name, targ, info, key, fmt,
@@ -1179,6 +1276,10 @@
   function unlockUpdate() {
     updateGraph.locked = false;
     $('div.pretty > input').prop("disabled", false);
+
+    if (targetDate) {
+      $('input#auto-update').prop("disabled", true)
+    }
   }
 
   function updateGraph() {
@@ -1187,7 +1288,7 @@
 
       switch ($('input[name=mode]:checked').val()) {
       case "day":
-        session.getTimeSeriesData(sensorId, now, 48 * 3600)
+        session.getDayData(sensorId, targetDate || today)
           .then((info) => {
             plotDayData(info);
             unlockUpdate();
@@ -1195,7 +1296,7 @@
         break;
 
       case "week":
-        session.getWeekData(sensorId, now)
+        session.getWeekData(sensorId, targetDate || today)
           .then((info) => {
             plotAbstractHourData(info, 14);
             unlockUpdate();
@@ -1203,7 +1304,7 @@
         break;
 
       case "1month":
-        session.getMonthData(sensorId, now)
+        session.getMonthData(sensorId, targetDate || today)
           .then((info) => {
             plotAbstractHourData(info, 30)
             unlockUpdate();
@@ -1211,7 +1312,7 @@
         break;
 
       case "3months":
-        session.getSeasonData(sensorId, now)
+        session.getSeasonData(sensorId, targetDate || today)
           .then((info) => {
             plotAbstractDateData(info, 90)
             unlockUpdate();
@@ -1219,7 +1320,7 @@
         break;
 
       case "year":
-        session.getYearData(sensorId, now)
+        session.getYearData(sensorId, targetDate || today)
           .then((info) => {
             plotAbstractWeekData(info, 365)
             unlockUpdate();
@@ -1233,9 +1334,58 @@
     }
   }
 
-  function setupHandler() {
+  function setupForm() {
     $('input[name=mode]')
       .on('click', () => updateGraph());
+
+    $('input#target-date')
+      .on('keydown', (e) => false)
+      .val(today)
+      .pikaday({
+        i18n: {
+          previousMonth: '前の月',
+          nextMonth:     '次の月',
+
+          months: [
+            '1月', '2月', '3月',  '4月',  '5月',  '6月',
+            '7月', '8月', '9月',' 10月', '11月', '12月',
+          ],
+
+          weekdays: [
+            '日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'
+          ],
+
+          weekdaysShort : [
+            '日', '月', '火', '水', '木', '金', '土'
+          ]
+        },
+
+        yearSuffix: '年',
+        showMonthAfterYear: true,
+
+        onSelect: (d) => {
+          date = moment(d).format("YYYY-MM-DD");
+
+          if (date != today) {
+            $('input#auto-update')
+              .prop("disabled", true)
+              .prop("checked", false);
+            targetDate = date;
+
+          } else {
+            $('input#auto-update').prop('disabled', false);
+            targetDate = null;
+          }
+
+          updateGraph();
+        },
+      });
+
+    $('button#date-select')
+      .on('click', (e) => {
+        e.preventDefault();
+        $('input#target-date').eq(0).pikaday('show');
+      });
   }
 
   function startSession() {
@@ -1246,7 +1396,11 @@
             .then((info) => setSensorValue(info));
 
           if ($('input#auto-update').is(":checked")) {
-            now = moment().format("YYYY-MM-DD HH:mm:ss");
+            today = moment().format("YYYY-MM-DD");
+            if (!targetDate) {
+              $('input#target-date').val(today);
+            }
+
             updateGraph();
           }
         }
@@ -1266,11 +1420,8 @@
       })
       .then((info) => {
         setSensorValue(info);
-
-        return session.getTimeSeriesData(sensorId, now, 48 * 3600)
-      })
-      .then((info) => {
-        plotDayData(info);
+        updateGraph();
+        $('body').show();
 
         return session.addNotifyRequest("update_sensor");
       })
@@ -1280,11 +1431,13 @@
   }
 
   function initialize() {
-    session  = new Session(WEBSOCK_URL);
-    sensorId = window.location.pathname.split('/')[2];
-    now      = moment().format("YYYY-MM-DD HH:mm:ss");
+    session    = new Session(WEBSOCK_URL);
+    sensorId   = window.location.pathname.split('/')[2];
+    today      = moment().format("YYYY-MM-DD");
+    targetDate = null;
 
-    setupHandler();
+    setupForm();
+
     startSession();
   }
 
@@ -1297,6 +1450,8 @@
       "/css/pretty-checkbox.min.css",
       "/css/roboto.css",
       "/css/roboto-mono.css",
+      "/css/pikaday.css",
+      "/css/bootstrap-icons.css",
 
       "/js/popper.min.js",
       "/js/bootstrap.min.js",
@@ -1308,6 +1463,8 @@
       "/js/plotly.min.js",
       "/js/plotly-locale-ja.js",
       "/js/lodash.min.js",
+      "/js/pikaday.js",
+      "/js/pikaday.jquery.js",
 
       "/css/sensor/style.scss",
       "/js/msgpack-rpc.js",
