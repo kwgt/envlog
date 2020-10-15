@@ -157,6 +157,55 @@ module EnvLog
         return ret
       end
 
+      def get_raw_data(id, tm, span)
+        date  = Date.parse(tm)
+        head  = (date - (span - 1)).strftime("%Y-%m-%d")
+        tail  = date.strftime("%Y-%m-%d")
+
+        rows = @db.query(<<~EOQ, :as => :array)
+          select time, temp, `r/h`, `v/h`, `a/p`
+              from DATA_TABLE_V2
+              where sensor = "#{id}" and
+                    (date(time) between "#{head}" and "#{tail}");
+        EOQ
+
+        row0 = rows.inject([]) {|m, n| m << n[0].to_s}
+
+        if rows.first and rows.first[1]
+          row1 = rows.inject([]) {|m, n| m << n[1]}
+        else
+          row1 = nil
+        end
+
+        if rows.first and rows.first[2]
+          row2 = rows.inject([]) {|m, n| m << n[2]}
+        else
+          row2 = nil
+        end
+
+        if rows.first and rows.first[3]
+          row3 = rows.inject([]) {|m, n| m << n[3]}
+        else
+          row3 = nil
+        end
+
+        if rows.first and rows.first[4]
+          row4 = rows.inject([]) {|m, n| m << n[4]}
+        else
+          row4 = nil
+        end
+
+        ret = {
+          :time  => row0,
+          :temp  => row1,
+          :"r/h" => row2,
+          :"v/h" => row3,
+          :"a/p" => row4
+        }
+
+        return ret
+      end
+
       def get_abstracted_hour_data(id, tm, span)
         date  = Date.parse(tm)
         head  = (date - (span - 1)).strftime("%Y-%m-%d")
