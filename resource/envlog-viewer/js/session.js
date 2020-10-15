@@ -66,6 +66,10 @@ if (!msgpack || !msgpack.rpc) {
       return this.remoteCall('remove_device', addr);
     }
 
+    getDayData(id, tm) {
+      return this.remoteCall('get_day_data', id, tm);
+    }
+
     getWeekData(id, tm) {
       return this.remoteCall('get_week_data', id, tm);
     }

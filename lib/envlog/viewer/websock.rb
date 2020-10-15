@@ -564,6 +564,31 @@ module EnvLog
       remote_async :remove_device
 
       #
+      # 日表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは週間グラフ作成の用のデータをtmから過去に遡って
+      #   二日分取得します
+      #
+      def get_day_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_raw_data(id, tm, 2))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_day_data
+
+      #
       # 週間表示用のデータ取得
       #
       # @param [String] id  対象センサーのID

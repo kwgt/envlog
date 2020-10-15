@@ -4,4 +4,7 @@
 .rbenv-gemsets
 
 sensor/include/sensor_common.h
+sensor/*/.gitignore
+sensor/*/.travis.yml
+test/data/*
 tmp/

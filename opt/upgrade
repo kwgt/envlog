@@ -1,0 +1,222 @@
+#! /usr/bin/env ruby
+# coding: utf-8
+
+#
+# DATA_TABLE upgrader
+#
+#   Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmail.com>
+#
+
+require 'pathname'
+require 'optparse'
+require 'yaml'
+
+BASE_DIR    = Pathname.new(File.expand_path(__FILE__)).dirname.parent
+DATA_DIR    = BASE_DIR + "data"
+LIB_DIR     = BASE_DIR + "lib" + "envlog"
+SCHEMA_FILE = DATA_DIR + "schema.yml"
+
+require "#{LIB_DIR + "version"}"
+require "#{LIB_DIR + "misc"}"
+require "#{LIB_DIR + "schema"}"
+require "#{LIB_DIR + "config"}"
+
+OptionParser.new { |opt|
+  opt.version = EnvLog::VERSION
+
+  opt.on("-c FILE", "--config-file=FILE") { |file|
+    $config_file = file
+  }
+
+  opt.on("-d", "--drop-origin") {
+    $drop_origin = true
+  }
+
+  opt.parse!(ARGV)
+
+  raise("configuration file is not specified.") if not $config_file
+}
+
+# 気温(℃)と相対湿度(%)から絶対湿度(g/m^3)を求めるメソッド
+def vh(t, rh)
+  if t and rh
+    e   = 6.1078 * (10 ** ((7.5 * t) / (t + 237.3)))
+    a   = (216.7 * e) / (t + 273.15)
+    ret = a * (rh / 100.0)
+
+  else
+    ret = nil
+  end
+
+  return ret
+end
+
+EnvLog::Schema.read(SCHEMA_FILE)
+EnvLog::Config.read($config_file)
+
+# MySQL向けの処理をパッケージングしたモジュールを定義
+mysql = Module.new {
+  class << self
+    def open_database
+      cred = EnvLog::Config.dig(:database, :mysql)
+      db   = Mysql2::Client.new(cred)
+
+      class << db
+        def exist_table?(name)
+          rows = self.query(<<~EOQ)
+            show tables like '#{name}';
+          EOQ
+
+          return (rows.count > 0)
+        end
+      end
+
+      db.query("set autocommit = 0;")
+      db.query("start transaction;")
+
+      yield(db)
+
+      db.query("commit;")
+
+    rescue Exception => e
+      db&.query("rollback;")
+      raise(e)
+
+    ensure
+      db&.close
+    end
+    private :open_database
+
+    def upgrade
+      ddl = YAML.load_file(DATA_DIR + "ddl" + "mysql.yml")
+
+      open_database { |db|
+        begin
+          if not db.exist_table?("SENSOR_TABLE")
+            raise("sensor table is not exist")
+          end
+
+          if not db.exist_table?("DATA_TABLE")
+            raise("origin data table is not exist")
+          end
+
+          db.query(ddl.dig("data_table", "v2"))
+
+          stmt = db.prepare(<<~EOQ)
+            insert ignore into DATA_TABLE_V2
+                values (?, ?, ?, ?, ?, ?, ?, ?, ?);
+          EOQ
+
+          rows = db.query(<<~EOQ, :as => :array)
+            select * from DATA_TABLE;
+          EOQ
+
+          rows.each { |row|
+            stmt.execute(row[0],
+                         row[1],
+                         row[2],
+                         row[3],
+                         vh(row[2], row[3]),
+                         row[4],
+                         row[5],
+                         row[6],
+                         row[7])
+          }
+
+        rescue Exception
+          stmt&.close
+        end
+      }
+    end
+  end
+}
+
+# SQLite3向けの処理をパッケージングしたモジュールを定義
+sqlite3 = Module.new {
+  class << self
+    def open_database
+      path = EnvLog::Config.dig(:database, :sqlite3, :path)
+      db   = SQLite3::Database.new(path.to_s)
+
+      class << db
+        def exist_table?(name)
+          n = self.get_first_value(<<~EOQ)
+            select count(*) from sqlite_master
+                where type = 'table' and name = '#{name}';
+          EOQ
+
+          return n.zero?.!
+        end
+      end
+
+      db.transaction
+
+      yield(db)
+
+      db.commit
+
+    rescue Exception => e
+      db&.rollback
+      raise(e)
+
+    ensure
+      db&.close
+    end
+    private :open_database
+
+    def upgrade
+      ddl = YAML.load_file(DATA_DIR + "ddl" + "sqlite3.yml")
+
+      open_database { |db|
+        begin
+          if not db.exist_table?("SENSOR_TABLE")
+            raise("sensor table is not exist")
+          end
+
+          if not db.exist_table?("DATA_TABLE")
+            raise("origin data table is not exist")
+          end
+
+          db.execute(ddl.dig("data_table", "v2"))
+
+          stmt = db.prepare(<<~EOQ)
+            insert or ignore into DATA_TABLE_V2
+                values(?, ?, ?, ?, ?, ?, ?, ?, ?);
+          EOQ
+
+          rows = db.execute(<<~EOQ)
+            select * from DATA_TABLE;
+          EOQ
+
+          rows.each { |row|
+            stmt.execute(row[0],
+                         row[1],
+                         row[2],
+                         row[3],
+                         vh(row[2], row[3]),
+                         row[4],
+                         row[5],
+                         row[6],
+                         row[7])
+          }
+
+        ensure
+          stmt&.close
+        end
+      }
+    end
+  end
+}
+
+case
+when EnvLog::Config.has?(:database, :mysql)
+  require 'mysql2'
+  mysql.upgrade()
+
+when EnvLog::Config.has?(:database, :sqlite3)
+  require 'sqlite3'
+  sqlite3.upgrade()
+
+else
+  raise("really?")
+end

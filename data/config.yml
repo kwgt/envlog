@@ -57,13 +57,16 @@ graph:
   # 数値の表示範囲
   #
   range:
-    temp:
+    temp:           # 気温 (°C)
       min:    5
       max:    40
-    hum:
+    r/h:            # 相対湿度 (%)
       min:    30
       max:    90
-    a/p:
+    v/h:            # 絶対湿度 (g/m^3)
+      min:    5
+      max:    40
+    a/p:            # 気圧 (hpa)
       min:    995
       max:    1020
 

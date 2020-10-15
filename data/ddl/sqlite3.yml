@@ -1,0 +1,49 @@
+sensor_table:
+  v1: >-
+    create table if not exists SENSOR_TABLE (
+      addr         text unique, /* デバイスアドレス          */
+      id           text unique, /* センサID(UUID)            */
+      ctime        timestamp,   /* 登録日時                  */
+      mtime        timestamp,   /* 更新日時                  */
+      descr        text,        /* 端末概要                  */
+      `pow-source` text,        /* 外部電源の種別            */
+      state        text,        /* 状態                      */
+      `last-seq`   integer,     /* 最終シーケンス番号        */
+
+      primary key (id)
+    ); 
+
+data_table:
+  #
+  # version 0.8以前
+  #
+  v1: >-
+    create table if not exists DATA_TABLE (
+      sensor     text,         /* センサーID (UUID)          */
+      time       timestamp,    /* 記録日時                   */
+      temp       numeric,      /* 気温                       */
+      humidity   numeric,      /* 湿度                       */
+      `air-pres` numeric,      /* 気圧                       */
+      rssi       integer,      /* 計測時のRSSI               */
+      vbat       numeric,      /* 計測時の電池電圧           */
+      vbus       numeric,      /* 計測時の外部電源電圧       */
+      primary key (time, sensor)
+    );
+
+  #
+  # version 0.9以降
+  #
+  v2: >-
+    create table if not exists DATA_TABLE_V2 (
+      sensor     text,         /* センサーID (UUID)          */
+      time       timestamp,    /* 記録日時                   */
+      temp       numeric,      /* 気温 (℃)                  */
+      `r/h`      numeric,      /* 相対湿度 (%)               */
+      `v/h`      numeric,      /* 絶対湿度 (g/m^3)           */
+      `a/p`      numeric,      /* 気圧                       */
+      rssi       integer,      /* 計測時のRSSI               */
+      vbat       numeric,      /* 計測時の電池電圧           */
+      vbus       numeric,      /* 計測時の外部電源電圧       */
+
+      primary key (time, sensor)
+    );

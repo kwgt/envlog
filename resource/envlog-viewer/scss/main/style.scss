@@ -26,8 +26,12 @@ table#sensor-table {
     width: 5em;
   }
 
-  .humidity {
+  .relative-humidity {
     width: 5em;
+  }
+
+  .volumetric-humidity {
+    width: 6em;
   }
 
   .air-pressure {
@@ -46,7 +50,7 @@ table#sensor-table {
     width: 8em;
   }
 
-  .description {
+  .location {
   }
 
   .control {
@@ -59,7 +63,11 @@ table#sensor-table > thead {
     text-align: center;
   }
 
-  th.humidity {
+  th.relative-humidity {
+    text-align: center;
+  }
+
+  th.volumetric-humidity {
     text-align: center;
   }
 
@@ -105,13 +113,23 @@ table#sensor-table > tbody {
     font-size: 75%;
   }
 
-  td.humidity {
+  td.relative-humidity {
     font-family: "Roboto mono";
     text-align: right;
   }
 
-  td.humidity:after {
+  td.relative-humidity:after {
     content: "\0025";
+    font-size: 75%;
+  }
+
+  td.volumetric-humidity {
+    font-family: "Roboto mono";
+    text-align: right;
+  }
+
+  td.volumetric-humidity:after {
+    content: "g/m\00b3";
     font-size: 75%;
   }
 
@@ -173,7 +191,7 @@ table#sensor-table > tbody {
     content: "PAUSE";
   }
 
-  td.description {
+  td.location {
     font-family: Roboto;
   }
 

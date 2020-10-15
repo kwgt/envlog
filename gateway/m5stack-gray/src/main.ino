@@ -119,7 +119,7 @@ loop()
       M5.Lcd.setCursor(x, y + yo, 1);
       M5.Lcd.print(str);
 
-      Serial.printf(",\"hum\":%.1f", hum);
+      Serial.printf(",\"r/h\":%.1f", hum);
 
       pos += 2;
     }

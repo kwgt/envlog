@@ -29,9 +29,10 @@ module EnvLog
       def check_graph_config(data)
         (data[:graph] ||= {}).instance_eval {
           (self[:range] ||= {}).instance_eval {
-            self[:temp]  ||= {:min => 5, :max => 40}
-            self[:hum]   ||= {:min => 30, :max => 90}
-            self[:"a/p"] ||= {:min => 995, :max => 1020}
+           self[:temp]  ||= {:min =>   5, :max =>   40}
+           self[:"r/h"] ||= {:min =>  30, :max =>   90}
+           self[:"v/h"] ||= {:min =>   0, :max =>   40}
+           self[:"a/p"] ||= {:min => 995, :max => 1020}
           }
         }
 
@@ -43,14 +44,21 @@ module EnvLog
           EOT
         end
 
-        tmp = data.dig(:graph, :range, :hum)
+        tmp = data.dig(:graph, :range, :"r/h")
 
         if tmp[:min] >= tmp[:max]
           raise InvalidValue.new(<<~EOT)
-            wrong relationship between min and max (graph.range.hum).
+            wrong relationship between min and max (graph.range.r/h).
           EOT
         end
 
+        tmp = data.dig(:graph, :range, :"v/h")
+
+        if tmp[:min] >= tmp[:max]
+          raise InvalidValue.new(<<~EOT)
+            wrong relationship between min and max (graph.range.v/h).
+          EOT
+        end
 
         tmp = data.dig(:graph, :range, :"a/p")
 

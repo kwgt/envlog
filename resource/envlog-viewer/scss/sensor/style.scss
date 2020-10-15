@@ -32,6 +32,33 @@ div#result {
   }
 }
 
+button#prev-date {
+  border-top-color: #ced4da;
+  border-left: none;
+  border-right: none;
+  border-bottom-color: #ced4da;
+}
+
+input#target-date {
+  width: 8em;
+  border-left: none;
+  border-right: none;
+  text-align: center;
+}
+
+button#next-date {
+  border-top-color: #ced4da;
+  border-left: none;
+  border-right-color: #ced4da;
+  border-bottom-color: #ced4da;
+}
+
+
+
+button#prev-date {
+
+}
+
 div#mode-radio {
   margin-left: 2rem;
 }
@@ -42,7 +69,12 @@ div#temp-graph {
   height: 30vw;
 }
 
-div#hum-graph {
+div#rh-graph {
+  width: 100%;
+  height: 30vw;
+}
+
+div#vh-graph {
   width: 100%;
   height: 30vw;
 }
