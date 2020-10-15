@@ -1049,7 +1049,7 @@
     }
   }
 
-  function changeDate(obj) {
+  function changeDate(obj, noUpdate) {
     var date;
 
     date = moment(obj).format("YYYY-MM-DD");
@@ -1065,7 +1065,9 @@
       targetDate = null;
     }
 
-    $('input#target-date').val(date);
+    if (!noUpdate) {
+      $('input#target-date').eq(0).pikaday('setDate', date);
+    }
 
     updateGraph();
   }
@@ -1164,7 +1166,7 @@
         showMonthAfterYear: true,
 
         onSelect: (d) => {
-          changeDate(d);
+          changeDate(d, true);
         },
       });
   }
@@ -1179,7 +1181,7 @@
           if ($('input#auto-update').is(":checked")) {
             today = moment().format("YYYY-MM-DD");
             if (!targetDate) {
-              $('input#target-date').val(today);
+              $('input#target-date').eq(0).pikaday('setDate', today);
             }
 
             updateGraph();
