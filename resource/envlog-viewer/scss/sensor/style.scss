@@ -23,6 +23,14 @@ nav {
   form {
     margin-bottom: 0;
   }
+
+  a.nav-link.dropdown-toggle {
+    color: #dfa107;
+  }
+
+  a.nav-link.dropdown-toggle:hover {
+    color: var(--warning);
+  }
 }
 
 div#result {
@@ -50,24 +58,17 @@ div#result {
 }
 
 button#prev-date {
-  border-top-color: #ced4da;
-  border-left-color: #ced4da;
-  border-right: none;
-  border-bottom-color: #ced4da;
+  border: none
 }
 
 input#target-date {
-  width: 8em;
-  border-left: none;
-  border-right: none;
+  width: 7em;
   text-align: center;
+  border: none;
 }
 
 button#next-date {
-  border-top-color: #ced4da;
-  border-left: none;
-  border-right-color: #ced4da;
-  border-bottom-color: #ced4da;
+  border: none;
 }
 
 
