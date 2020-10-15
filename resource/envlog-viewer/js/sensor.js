@@ -977,12 +977,15 @@
   }
 
   function lockUpdate () {
+    $('input#target-date').prop("disabled", true)
     $('div.pretty > input').prop("disabled", true);
+    $('input#auto-update').prop("disabled", true)
     updateGraph.locked = true;
   }
 
   function unlockUpdate() {
     updateGraph.locked = false;
+    $('input#target-date').prop("disabled", false);
     $('div.pretty > input').prop("disabled", false);
 
     if (targetDate) {
