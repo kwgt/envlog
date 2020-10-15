@@ -1135,12 +1135,14 @@
   }
 
   function plotAbstractWeekData(info, span) {
+    var date;
     var head;
     var tail;
     var chams;
 
-    head   = moment(now).subtract(span - 1, "days").format("YYYY-MM-DD");
-    tail   = moment(now).format("YYYY-MM-DD");
+    date   = targetDate || today;
+    head   = moment(date).subtract(span - 1, "days").format("YYYY-MM-DD");
+    tail   = moment(date).add(1, "days").format("YYYY-MM-DD");
 
     /*
      * 欠損部分のマーキング(週別データ)
@@ -1206,6 +1208,8 @@
      * 気温
      */
     if (info["temp"]) {
+      $("div#temp-graph").show();
+
       plotAbstractWeekCore("気温",
                            "temp-graph",
                            info,
@@ -1216,12 +1220,17 @@
                            tail,
                            _.get(graphConfig, ["range", "temp", "min"]),
                            _.get(graphConfig, ["range", "temp", "max"]));
+
+    } else {
+      $("div#temp-graph").hide();
     }
 
     /*
      * 相対湿度
      */
     if (info["r/h"]) {
+      $("div#rh-graph").show();
+
       plotAbstractWeekCore("湿度(RH)",
                            "rh-graph",
                            info,
@@ -1232,12 +1241,17 @@
                            tail,
                            _.get(graphConfig, ["range", "r/h", "min"]),
                            _.get(graphConfig, ["range", "r/h", "max"]));
+
+    } else {
+      $("div#rh-graph").hide();
     }
 
     /*
      *  絶対湿度(容積)
      */
     if (info["v/h"]) {
+      $("div#vh-graph").show();
+
       plotAbstractWeekCore("湿度(VH)",
                            "vh-graph",
                            info,
@@ -1249,12 +1263,17 @@
                            _.get(graphConfig, ["range", "v/h", "min"]),
                            _.get(graphConfig, ["range", "v/h", "max"]),
                            VH_OPT_SHAPES);
+
+    } else {
+      $("div#vh-graph").hide();
     }
 
     /*
      *  気圧
      */
     if (info["a/p"]) {
+      $("div#air-graph").show();
+
       plotAbstractWeekCore("気圧",
                            "air-graph",
                            info,
@@ -1265,7 +1284,12 @@
                            tail,
                            _.get(graphConfig, ["range", "a/p", "min"]),
                            _.get(graphConfig, ["range", "a/p", "max"]));
+
+    } else {
+      $("div#air-graph").hide();
     }
+
+    postPlotGraph(info);
   }
 
   function lockUpdate () {
