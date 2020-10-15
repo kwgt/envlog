@@ -37,7 +37,7 @@ div#result {
 
     span.number {
       display: inline-block;
-      width: calc(100% - 5rem);
+      width: calc(100% - (5rem * 0.5714));
       font-size: 3.5vmin;
       font-family: "Roboto mono";
     }
