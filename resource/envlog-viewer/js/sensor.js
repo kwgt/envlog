@@ -1513,7 +1513,12 @@
       .then((config) => {
         graphConfig = config;
 
-        return session.getLatestSensorValue(sensorId)
+        return session.getSensorInfo(sensorId);
+      })
+      .then((info) => {
+        $('nav > h4').text(info["descr"]);
+
+        return session.getLatestSensorValue(sensorId);
       })
       .then((info) => {
         setSensorValue(info);

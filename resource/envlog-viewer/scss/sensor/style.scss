@@ -9,20 +9,36 @@ body {
   height: 100%;
 }
 
+nav {
+  position: fixed!important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 100;
+
+  h4 {
+    margin-bottom: 0;
+  }
+
+  form {
+    margin-bottom: 0;
+  }
+}
+
 div#result {
   div.label {
-    font-size: 5vmin;
+    font-size: 4vmin;
     font-weight: 700;
     width: 20%;
   }
 
   div.value {
-    width: 30%;
+    width: 20%;
 
     span.number {
       display: inline-block;
       width: 10rem;
-      font-size: 5vmin;
+      font-size: 4vmin;
       font-family: "Roboto mono";
     }
 
@@ -34,7 +50,7 @@ div#result {
 
 button#prev-date {
   border-top-color: #ced4da;
-  border-left: none;
+  border-left-color: #ced4da;
   border-right: none;
   border-bottom-color: #ced4da;
 }
@@ -64,7 +80,6 @@ div#mode-radio {
 }
 
 div#temp-graph {
-  margin-top: 2.5rem;
   width: 100%;
   height: 30vw;
 }
