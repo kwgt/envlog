@@ -31,6 +31,22 @@ nav {
   a.nav-link.dropdown-toggle:hover {
     color: var(--warning);
   }
+
+  div.dropdown-menu {
+    .dropdown-item {
+      span {
+        vertical-align: middle;
+      }
+
+      span.bi.checked {
+        content: url('data:image/svg+xml;utf-8,<svg width="1rem" height="1rem" viewBox="0 0 16 16" class="bi bi-check2" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/></svg>');
+      }
+
+      input {
+        display: none;
+      }
+    }
+  }
 }
 
 div#result {
@@ -66,6 +82,10 @@ input#target-date {
   text-align: center;
   font-family: "Roboto";
   border: none;
+}
+
+input#target-date[disabled] {
+  color: rgb(170, 170, 170)!important;
 }
 
 button#next-date {
