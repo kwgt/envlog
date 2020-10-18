@@ -10,6 +10,8 @@
   var sensorId;
   var today;
   var targetDate;
+  var graphRange;
+  var autoUpdate;
 
   const I18N_TABLE = {
     pikaday: {
@@ -977,6 +979,7 @@
   }
 
   function lockUpdate () {
+    $('nav div.dropdown-item').addClass("disabled");
     $('button#prev-date').prop("disabled", true)
     $('input#target-date').prop("disabled", true)
     $('button#next-date').prop("disabled", true)
@@ -987,6 +990,7 @@
 
   function unlockUpdate() {
     updateGraph.locked = false;
+    $('nav div.dropdown-item').removeClass("disabled");
     $('button#prev-date').prop("disabled", false)
     $('input#target-date').prop("disabled", false);
     $('button#next-date').prop("disabled", false)
@@ -1001,7 +1005,7 @@
     if (!updateGraph.locked) {
       lockUpdate();
 
-      switch ($('input[name=mode]:checked').val()) {
+      switch (graphRange) {
       case "day":
         session.getDayData(sensorId, targetDate || today)
           .then((info) => {
@@ -1071,14 +1075,14 @@
   }
 
   function setupForm() {
-    $('input[name=mode]')
-      .on('click', () => updateGraph());
-
+    /*
+     * 日付戻しボタン
+     */
     $('button#prev-date')
       .on('click', (e) => {
         e.preventDefault();
 
-        switch ($('input[name=mode]:checked').val()) {
+        switch (graphRange) {
         case "day":
           delta = {days: 1};
           break;
@@ -1106,11 +1110,14 @@
         changeDate(moment(targetDate || today).subtract(delta));
       });
 
+    /*
+     * 日付送りボタン
+     */
     $('button#next-date')
       .on('click', (e) => {
         e.preventDefault();
 
-        switch ($('input[name=mode]:checked').val()) {
+        switch (graphRange) {
         case "day":
           delta = {days: 1};
           break;
@@ -1138,6 +1145,9 @@
         changeDate(moment(targetDate || today).add(delta));
       });
 
+    /*
+     * 日付選択
+     */
     $('input#target-date')
       .on('keydown', (e) => false)
       .val(today)
@@ -1167,6 +1177,29 @@
           changeDate(d);
         },
       });
+
+    /*
+     * 
+     */
+    $('div.dropdown-item[data-name="range"]')
+      .on('click', (e) => {
+        $('div.dropdown-item[data-name="range"]')
+          .find('span')
+            .removeClass('checked')
+          .end();
+
+        $(e.currentTarget).find('span.bi').addClass('checked');
+
+        graphRange = $(e.currentTarget).attr("data-value");
+        updateGraph();
+      });
+
+    $('div.dropdown-item[data-name="auto-update"]')
+      .on('click', (e) => {
+        $(e.currentTarget).find('span.bi').toggleClass('checked');
+
+        autoUpdate = $(e.currentTarget).find('span.bi').hasClass('checked');
+      });
   }
 
   function startSession() {
@@ -1176,7 +1209,7 @@
           session.getLatestSensorValue(sensorId)
             .then((info) => setSensorValue(info));
 
-          if ($('input#auto-update').is(":checked")) {
+          if (autoUpdate) {
             today = moment().format("YYYY-MM-DD");
             if (!targetDate) {
               $('input#target-date').val(today);
@@ -1221,6 +1254,8 @@
     sensorId   = window.location.pathname.split('/')[2];
     today      = moment().format("YYYY-MM-DD");
     targetDate = null;
+    graphRange = "day";
+    autoUpdate = false;
 
     setupForm();
 
