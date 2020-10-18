@@ -71,7 +71,6 @@ options:
   <dd>De-register the sensor device.</dd>
 </dl>
 
-
 ### Viewer process
 It works as an HTTP server for referencing stored data.
 
@@ -100,6 +99,17 @@ file). </dd>
 
 ## How to bootstrap
 T.B.D
+
+## Database upgrade
+
+### When migrate before 0.8 to after 0.9
+ince version 0.9, the data recording table has been changed (table DATA\_TABLE to DATA\_TABLE\_V2). Use the "op/upgrade" script if you want to inherit the previous data.
+
+```
+ruby opt/upgrade -c <CONFIG-FILE>
+```
+
+When the migration is complete, the old table (DATA\_TABLE) is not required and can be deleted.
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at https://github.com/kwgt/envlog
