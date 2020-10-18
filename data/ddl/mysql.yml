@@ -1,0 +1,57 @@
+sensor_table:
+  v1: >-
+    /*
+     * ※MariaDBでは、timestampを含むテーブルを作成した場合、Extraに
+     *   勝手に"on update CURRENT_TIMESTAMP"が付与されてしまうため、
+     *   update 時に予期せぬ動作をすることがある。これを防ぐためデフ
+     *   ォルト設定を行っている(default CURENT_TIMESTAMPを指定すると
+     *   Extraが付与されない)。
+     */
+     
+    create table if not exists SENSOR_TABLE (
+      addr         varchar(64) unique, /* デバイスアドレス          */
+      id           char(36) unique,    /* センサーID (UUID)         */
+      ctime        timestamp default CURRENT_TIMESTAMP, /* 登録日時 */
+      mtime        timestamp default CURRENT_TIMESTAMP, /* 更新日時 */
+      descr        text,               /* 端末概要                  */
+      `pow-source` varchar(16),        /* 外部電源の種別            */
+      state        varchar(16),        /* 状態                      */
+      `last-seq`   integer,            /* 最終シーケンス番号        */
+
+      primary key (id)
+    );
+
+data_table:
+  #
+  # version 0.8以前
+  #
+  v1: >-
+    create table if not exists DATA_TABLE (
+      sensor     char(36),             /* センサーID (UUID)         */
+      time       timestamp,            /* 記録日時                  */
+      temp       float,                /* 気温                      */
+      humidity   float,                /* 湿度                      */
+      `air-pres` float,                /* 気圧                      */
+      rssi       integer,              /* 計測時のRSSI              */
+      vbat       float,                /* 計測時の電池電圧          */
+      vbus       float,                /* 計測時の外部電源電圧      */
+      primary key (time, sensor)
+    );
+
+  #
+  # version 0.9以前
+  #
+  v2: >-
+    create table if not exists DATA_TABLE_V2 (
+      sensor     char(36),             /* センサーID (UUID)         */
+      time       timestamp,            /* 記録日時                  */
+      temp       float,                /* 気温 (℃)                 */
+      `r/h`      float,                /* 相対湿度 (%)              */
+      `v/h`      float,                /* 絶対湿度 (g/m^3)          */
+      `a/p`      float,                /* 気圧                      */
+      rssi       integer,              /* 計測時のRSSI              */
+      vbat       float,                /* 計測時の電池電圧          */
+      vbus       float,                /* 計測時の外部電源電圧      */
+
+      primary key (time, sensor)
+    );

@@ -98,7 +98,8 @@ module EnvLog
                 id,
                 ts,
                 data["temp"],
-                data["hum"],
+                data["r/h"],
+                data["v/h"],
                 data["a/p"],
                 data["rssi"],
                 data["vbat"],
@@ -106,7 +107,7 @@ module EnvLog
               ]
 
               db.query(<<~EOQ, *args)
-                insert into DATA_TABLE values(?, ?, ?, ?, ?, ?, ?, ?);
+                insert into DATA_TABLE_V2 values(?, ?, ?, ?, ?, ?, ?, ?, ?);
               EOQ
 
               db.query(<<~EOQ, data['seq'], ts, state, id)

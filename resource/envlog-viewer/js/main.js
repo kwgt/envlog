@@ -57,7 +57,8 @@
     case "DEAD-BATTERY":
       ret = {
         "temp": formatValue("%4.1f", src["temp"]),
-        "hum":  formatValue("%4.1f", src["hum"]),
+        "r/h":  formatValue("%4.1f", src["r/h"]),
+        "v/h":  formatValue("%4.1f", src["v/h"]),
         "a/p":  formatValue("%4.0f", src["a/p"]),
         "vbat": formatValue("%4.2f", src["vbat"]),
         "vbus": formatValue("%4.2f", src["vbus"]),
@@ -70,7 +71,8 @@
     case "PAUSE":
         ret = {
           "temp": NONE_VALUE_STRING,
-          "hum":  NONE_VALUE_STRING,
+          "r/h":  NONE_VALUE_STRING,
+          "v/h":  NONE_VALUE_STRING,
           "a/p":  NONE_VALUE_STRING,
           "vbat": NONE_VALUE_STRING,
           "vbus": NONE_VALUE_STRING,
@@ -109,8 +111,11 @@
       .find('td.temperature')
         .text(foo["temp"])
       .end()
-      .find('td.humidity')
-        .text(foo["hum"])
+      .find('td.relative-humidity')
+        .text(foo["r/h"])
+      .end()
+      .find('td.volumetric-humidity')
+        .text(foo["v/h"])
       .end()
       .find('td.air-pressure')
         .text(foo["a/p"])
@@ -126,7 +131,7 @@
         .addClass('state')
         .addClass(lookupStateClass(info["state"]))
       .end()
-      .find('td.description')
+      .find('td.location')
         .text(info["descr"])
       .end();
   }
@@ -154,7 +159,10 @@
         .addClass('temperature')
       )
       .append($('<td>')
-        .addClass('humidity')
+        .addClass('relative-humidity')
+      )
+      .append($('<td>')
+        .addClass('volumetric-humidity')
       )
       .append($('<td>')
         .addClass('air-pressure')
@@ -169,7 +177,7 @@
         .addClass('state')
       )
       .append($('<td>')
-        .addClass('description')
+        .addClass('location')
       )
       .append($('<td>')
         .addClass('control')
@@ -222,7 +230,8 @@
           descr: si["descr"],
           state: si["state"],
           temp:  lv["temp"],
-          hum:   lv["hum"],
+          "r/h": lv["r/h"],
+          "v/h": lv["v/h"],
           "a/p": lv["a/p"],
           rssi:  lv["rssi"],
           vbat:  lv["vbat"],
