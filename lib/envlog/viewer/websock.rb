@@ -109,8 +109,8 @@ module EnvLog
         #
         # @return [boolean] TSLを使用する場合はtrue、使用しない場合はfalse
         #
-        def use_tsl?
-          return Config.has?(:webserver, :tsl)
+        def use_tls?
+          return Config.has?(:webserver, :tls)
         end
 
         #
@@ -128,7 +128,7 @@ module EnvLog
         # @return [Pathname] 証明書ファイルのパス
         #
         def cert_file
-          return @cert_file ||= Config.fetch_path(:webserver, :tsl, :cert)
+          return @cert_file ||= Config.fetch_path(:webserver, :tsl, :cert).to_s
         end
 
         #
@@ -137,7 +137,7 @@ module EnvLog
         # @return [Pathname] 鍵ファイルのパス
         #
         def key_file
-          return @key_file ||= Config.fetch_path(:webserver, :tsl, :key)
+          return @key_file ||= Config.fetch_path(:webserver, :tsl, :key).to_s
         end
 
         #
@@ -152,7 +152,7 @@ module EnvLog
             addr = bind_addr
           end
 
-          return "#{(use_tsl?)? "ssl":"tcp"}://#{addr}:#{ws_port}"
+          return "#{(use_tls?)? "tls":"tcp"}://#{addr}:#{ws_port}"
         end
         private :bind_url
 
@@ -170,7 +170,7 @@ module EnvLog
             opts = {
               :host        => bind_addr,
               :port        => ws_port,
-              :secure      => use_tsl?,
+              :secure      => use_tls?,
               :tls_options => {
                 :private_key_file => key_file,
                 :cert_chain_file  => cert_file
@@ -219,6 +219,10 @@ module EnvLog
               }
             }
           }
+        end
+
+        def stop
+          Log.info("websock") {"exit"}
         end
       end
 
@@ -388,15 +392,15 @@ module EnvLog
       # 指定されたセンサーの時系列データを取得する
       #
       # @param [String] id  センサーのID
-      # @param [Integer] tm  データ取得を開始する時刻情報(UNIX時刻)
+      # @param [String] tm  データ取得を開始する時刻情報(文字列)
       # @param [Integer] span  データ取得を行う期間(秒)
       #
       # @return [Hash] 計測値を格納したHash
       #
       # @note
-      #   本APIではtmからspanの間の時系列情報を取得する。tmに0を指定した
-      #   場合は例外的に、最新のデータから過去に遡ってspanの期間分のデー
-      #   タを取得します。
+      #   本APIではtmから過去に遡ってspanの間の時系列情報を取得する。
+      #   tmに"now"を指定した場合は、最新のデータから過去に遡ってspanの
+      #   期間分のデータを取得します。
       #
       def get_time_series_data(df, id, tm, span)
         EM.defer {
@@ -558,6 +562,116 @@ module EnvLog
         }
       end
       remote_async :remove_device
+
+      #
+      # 週間表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは週間グラフ作成の用のデータをtmから過去に遡って
+      #   二週間分取得します
+      #
+      def get_week_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_hour_data(id, tm, 14))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_week_data
+
+      #
+      # 月間表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは月間グラフ作成の用のデータをtmから過去に遡って
+      #   30日分取得します
+      #
+      def get_month_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_hour_data(id, tm, 30))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_month_data
+
+      #
+      # 三ヶ月表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは三ヶ月グラフ作成の用のデータをtmから過去に遡って
+      #   90日分取得します
+      #
+      def get_season_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_day_data(id, tm, 90))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_season_data
+
+      #
+      # 年間表示用のデータ取得
+      #
+      # @param [String] id  対象センサーのID
+      # @param [String] tm  データ取得を開始する時刻情報
+      #
+      # @return [:OK] 固定値
+      #
+      # @note
+      #   本APIは月間グラフ作成の用のデータをtmから過去に遡って
+      #   365日分取得します
+      #
+      def get_year_data(df, id, tm)
+        EM.defer {
+          begin
+            db = DBA.open
+            df.resolve(db.get_abstracted_day_data(id, tm, 365))
+
+          rescue => e
+            df.reject(e.message)
+          end
+        }
+      end
+      remote_async :get_year_data
+
+      #
+      # グラフ設定の取得
+      #
+      # @return [Hash] グラフ表示用の設定をパックしたハッシュ
+      #
+      def get_graph_config
+        return Config[:graph]
+      end
+      remote_public :get_graph_config
     end
   end
 end

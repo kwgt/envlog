@@ -47,3 +47,8 @@ definition:
       - DEAD-BATTERY  # 外部バッテリー切れ（内臓の予備電源で動作中）の状態
       - STALL         # 停止中（5分以上データの送信が途絶えた状態）
       - PAUSE         # データを受信しても記録しない状態（ユーザによる停止）
+
+  - &NUMERIC_ARRAY
+    type: array
+    items:
+      type: number

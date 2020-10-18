@@ -49,6 +49,25 @@ webserver:
   #auth:        ~/lib/envlog/passwd.yml
 
 #
+# viewerのグラフの設定
+# ※envlog-viewerのみ参照します
+#
+graph:
+  #
+  # 数値の表示範囲
+  #
+  range:
+    temp:
+      min:    5
+      max:    40
+    hum:
+      min:    30
+      max:    90
+    a/p:
+      min:    995
+      max:    1020
+
+#
 # ログ出力設定
 #
 log:

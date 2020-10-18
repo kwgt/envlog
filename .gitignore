@@ -2,4 +2,6 @@
 .python-version
 .ruby-version
 .rbenv-gemsets
+
+sensor/include/sensor_common.h
 tmp/
