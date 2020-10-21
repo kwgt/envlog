@@ -24,10 +24,12 @@
       ],
 
       weekdays: [
-        '日曜日','月曜日','火曜日','水曜日','木曜日','金曜日','土曜日'
+        '日曜日', '月曜日', '火曜日', '水曜日', '木曜日', '金曜日', '土曜日'
       ],
 
-      weekdaysShort : ['日','月','火','水','木','金','土']
+      weekdaysShort : [
+        '日', '月', '火', '水', '木', '金', '土'
+      ]
     },
 
     yearSuffix: '年'
@@ -556,15 +558,20 @@
     a.push(_.last(a));
   }
 
-  function plotAbstractHourData(info, span) {
+  function adjustTailEntry(info) {
     var date;
-    var head;
-    var tail;
-    var chams;
 
-    date   = targetDate || today;
-    head   = moment(date).subtract(span - 1, "days").format("YYYY-MM-DD");
-    tail   = moment(date).add(1, "days").format("YYYY-MM-DD");
+    /*
+     * 最大値・最小値については一日単位のデータでグラフの形状がhvなので
+     * 最後のエントリをちゃんと表示させようとすると、一日分余分にエント
+     * リを追加しておく必要がある。
+     *
+     * この関数ではその対応として、以下の処理を行う
+     *   - 日付インデックスの追加（最終日付の翌日分）
+     *   - 最大・最小値を複製追加
+     */
+
+    date = moment(_.last(info["date"])).add(1, "days").format("YYYY-MM-DD");
 
     info["date"].push(date);
 
@@ -587,6 +594,19 @@
       duplicateTail(info["a/p"]["min"]);
       duplicateTail(info["a/p"]["max"]);
     }
+  }
+
+  function plotAbstractHourData(info, span) {
+    var date;
+    var head;
+    var tail;
+    var chams;
+
+    date   = targetDate || today;
+    head   = moment(date).subtract(span - 1, "days").format("YYYY-MM-DD");
+    tail   = moment(date).add(1, "days").format("YYYY-MM-DD");
+
+    adjustTailEntry(info);
 
     /*
      * 欠損部分のマーキング(時別データ)
@@ -876,6 +896,8 @@
     head   = moment(date).subtract(span - 1, "days").format("YYYY-MM-DD");
     tail   = moment(date).add(1, "days").format("YYYY-MM-DD");
 
+    adjustTailEntry(info);
+
     /*
      * 欠損部分のマーキング
      */
@@ -1145,6 +1167,8 @@
     date   = targetDate || today;
     head   = moment(date).subtract(span - 1, "days").format("YYYY-MM-DD");
     tail   = moment(date).add(1, "days").format("YYYY-MM-DD");
+
+    adjustTailEntry(info);
 
     /*
      * 欠損部分のマーキング(週別データ)
