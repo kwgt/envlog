@@ -1299,8 +1299,6 @@
     $('button#prev-date').prop("disabled", true)
     $('input#target-date').prop("disabled", true)
     $('button#next-date').prop("disabled", true)
-    $('div.pretty > input').prop("disabled", true);
-    $('input#auto-update').prop("disabled", true)
     updateGraph.locked = true;
   }
 
@@ -1310,10 +1308,9 @@
     $('button#prev-date').prop("disabled", false)
     $('input#target-date').prop("disabled", false);
     $('button#next-date').prop("disabled", false)
-    $('div.pretty > input').prop("disabled", false);
 
     if (targetDate) {
-      $('input#auto-update').prop("disabled", true)
+      $('div.dropdown-item[data-name="auto-update"]').addClass('disabled');
     }
   }
 
@@ -1375,13 +1372,16 @@
     date = moment(obj).format("YYYY-MM-DD");
 
     if (date != today) {
-      $('input#auto-update')
-        .prop("disabled", true)
-        .prop("checked", false);
+      $('div.dropdown-item[data-name="auto-update"]')
+        .addClass("disabled")
+        .find('span')
+          .removeClass('checked')
+        .end();
+
       targetDate = date;
 
     } else {
-      $('input#auto-update').prop('disabled', false);
+      $('div.dropdown-item[data-name="auto-update"]').removeClass('disabled');
       targetDate = null;
     }
 
