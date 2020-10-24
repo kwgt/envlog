@@ -1,0 +1,340 @@
+/*
+ * Sensor device control for environment data logger
+ *
+ *  Copyright (C) 2020 Hiroshi Kuwagata <kgt9221@gmai.com>
+ */
+
+#define USE_BLE
+#undef USE_UDP
+#undef USE_TCP
+
+#undef ENABLE_LCD
+#define ENABLE_LED
+
+#include <M5StickC.h>
+#include <Wire.h>
+
+#include <Adafruit_Sensor.h>
+#include <Adafruit_SHT31.h>
+#include <Adafruit_BMP280.h>
+#include <esp_sleep.h>
+#include <esp_system.h>
+
+#ifdef USE_BLE
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <esp_bt_main.h>
+#endif /* defined(USE_BLE) */
+
+#if defined(USE_UDP) || defined(USE_TCP)
+#define USE_WIFI
+#include <WiFi.h>
+#include <WiFiUdp.h>
+#include <esp_wifi.h>
+#endif /* defined(USE_UDP) || defined(USE_TCP) */
+
+#include "../../include/sensor_common.h"
+
+#define F_VALUE          (F_TEMP | F_HUMIDITY | F_AIRPRES | F_VBAT | F_VBUS)
+
+#if defined(USE_TCP) && defined(USE_UDP)
+#error "both USE_TCP and USE_UDP are selected."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if defined(USE_BLE) && defined(USE_WIFI)
+#error "both USE_BLE and either USE_TCP or USE_UDP are selected."
+#endif /* defined(USE_BLE) && defined(USE_WIFI) */
+
+#if !defined(USE_BLE) && !defined(USE_WIFI)
+#error "output method is not selected."
+#endif /* !defined(USE_BLE) && !defined(USE_WIFI) */
+ 
+#define M5STICK_PIN_LED  10
+
+Adafruit_SHT31 sht30;
+Adafruit_BMP280 bmp;
+RTC_DATA_ATTR int boot_count = 0;
+RTC_DATA_ATTR uint8_t seq;
+
+#ifdef USE_BLE
+BLEServer* server;
+BLEAdvertising* advertising;
+#endif /* defined(USE_BLE) */
+
+#ifdef USE_TCP
+WiFiClient tcp;
+#endif /* defined(USE_TCP) */
+
+#ifdef USE_UDP
+WiFiUDP udp;
+#endif /* defined(USE_UDP) */
+
+int16_t temp;
+uint16_t hum;
+uint16_t pres;
+uint16_t vbat;
+uint16_t vbus;
+
+void
+into_sleep()
+{
+  int64_t t;
+
+  t = (S_PERIOD * 1000000) - micros();
+  if (t < 10000000) t = 10000000; 
+
+  esp_deep_sleep(t);
+}
+ 
+#ifdef USE_BLE
+void
+setup_comm()
+{
+  BLEDevice::init(DEVICE_NAME);
+
+  server      = BLEDevice::createServer();
+  advertising = server->getAdvertising(); 
+}
+
+void
+send_data()
+{
+  BLEAdvertisementData adat = BLEAdvertisementData();
+  std::string data;
+  uint8_t mac[6];
+
+  adat.setFlags(0x06);
+
+  esp_efuse_mac_get_default(mac);
+
+  data = "";
+  data += (uint8_t)23;
+  data += (uint8_t)0xff; // AD Type 0xFF: Manufacturer specific data
+  data += LO_BYTE(MANUFACTURER_ID);
+  data += HI_BYTE(MANUFACTURER_ID);
+  data += (uint8_t)DATA_FORMAT_VERSION;
+  data += (uint8_t)seq;
+  data += mac[0];
+  data += mac[1];
+  data += mac[2];
+  data += mac[3];
+  data += mac[4];
+  data += mac[5];
+  data += LO_BYTE(F_VALUE);
+  data += HI_BYTE(F_VALUE);
+  data += LO_BYTE(temp);
+  data += HI_BYTE(temp);
+  data += LO_BYTE(hum);
+  data += HI_BYTE(hum);
+  data += LO_BYTE(pres);
+  data += HI_BYTE(pres);
+  data += LO_BYTE(vbat);
+  data += HI_BYTE(vbat);
+  data += LO_BYTE(vbus);
+  data += HI_BYTE(vbus);
+
+  adat.addData(data);
+  advertising->setAdvertisementData(adat);
+
+  advertising->start();
+  delay(T_PERIOD * 1000);
+  advertising->stop();
+}
+
+
+void
+stop_comm()
+{
+  esp_bluedroid_disable();
+  esp_bt_controller_disable();
+}
+#endif /* defined(USE_BLE) */
+
+#ifdef USE_WIFI
+void
+setup_comm()
+{
+  int i;
+
+  for (i = 0; i < AP_RETRY_LIMIT; i++) {
+    WiFi.begin(AP_SSID, AP_PASSWD);
+    if (WiFi.status() == WL_CONNECTED) break;
+
+#ifdef ENABLE_LCD
+    M5.Lcd.setCursor(0, 0, 1);
+    M5.Lcd.printf("Trying connect to %s", AP_SSID);
+#endif /* defined(ENABLE_LCD) */
+    delay(1000);
+  }
+
+  if (i == AP_RETRY_LIMIT) {
+    // 限度数を超えて接続に失敗した場合はここでdeep sleep
+    // ※ 起床時はリセットがかかるのでここに入るとこのターンはこれで終了
+    into_sleep();
+  }
+
+#ifdef ENABLE_LCD
+  M5.Lcd.setCursor(0, 0, 1);
+  M5.Lcd.printf("connected to %s", AP_SSID);
+#endif /* defined(ENABLE_LCD) */
+}
+
+void
+send_data()
+{
+  uint8_t buf[20];
+  
+  buf[0]  = (uint8_t)DATA_FORMAT_VERSION;
+  buf[1]  = (uint8_t)seq;
+
+  esp_efuse_mac_get_default(buf + 2);
+
+  buf[8]  = LO_BYTE(F_VALUE);
+  buf[9]  = HI_BYTE(F_VALUE);
+  buf[10] = LO_BYTE(temp);
+  buf[11] = HI_BYTE(temp);
+  buf[12] = LO_BYTE(hum);
+  buf[13] = HI_BYTE(hum);
+  buf[14] = LO_BYTE(pres);
+  buf[15] = HI_BYTE(pres);
+  buf[16] = LO_BYTE(vbat);
+  buf[17] = HI_BYTE(vbat);
+  buf[18] = LO_BYTE(vbus);
+  buf[19] = HI_BYTE(vbus);
+
+#ifdef USE_UDP
+  udp.beginPacket(SERVER_ADDR, SERVER_PORT);
+  udp.write(buf, sizeof(buf));
+  udp.endPacket();
+  udp.flush();
+#endif /* defined(USE_UDP) */
+
+#ifdef USE_TCP
+  if (tcp.connect(SERVER_ADDR, SERVER_PORT, CONNECT_TIMEOUT)) {
+    tcp.write(buf, sizeof(buf));
+    tcp.flush();
+
+    while (tcp.connected()) {
+      delay(50);
+    }
+    
+    tcp.stop();
+  }
+#endif /* defined(USE_TCP) */
+}
+
+void
+stop_comm()
+{
+  esp_wifi_stop();
+}
+#endif /* defined(USE_WIFI) */
+
+
+void
+setup()
+{
+#ifdef ENABLE_LCD
+  M5.begin(true, true, false);
+  M5.Axp.ScreenBreath(8);
+  M5.Lcd.setRotation(3);
+  M5.Lcd.setTextFont(4);
+  M5.Lcd.setTextSize(1);
+  M5.Lcd.fillScreen(BLACK);
+#endif /* defined(ENABLE_LCD) */
+
+#ifndef ENABLE_LCD
+  M5.begin(false, false, false);
+  M5.Axp.ScreenBreath(0);
+  M5.Axp.SetLDO2(false);
+#endif /* !defined(ENABLE_LCD) */
+
+  esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_ALL);
+  setCpuFrequencyMhz(80);
+
+  Wire.begin(0, 26);
+
+#ifdef ENABLE_LED
+  pinMode(M5STICK_PIN_LED, OUTPUT);
+#endif /* defined(ENABLE_LED) */
+
+#ifndef ENABLE_LED
+  pinMode(M5STICK_PIN_LED, INPUT_PULLDOWN);
+#endif /* !defined(ENABLE_LED) */
+
+  while (!sht30.begin(0x44) || !bmp.begin(0x76)) {
+#ifdef ENABLE_LCD
+    M5.Lcd.setCursor(0, 0, 1);
+    M5.Lcd.println("Sensor init fail");
+#endif /* defined(ENABLE_LCD) */
+    delay(10);
+  }
+
+  setup_comm();
+
+  boot_count++;
+}
+
+void
+read_sensor()
+{
+  int n;
+
+  /*
+   * SHT30のhumidity responseは最大8sかかる。
+   * m5atomの場合は消費電力や本体温度の上昇を気にする必要が無いので
+   * 真面目に待ってみる。
+   */
+  n = 4;
+
+  while (n-- > 0) {
+#ifdef ENABLE_LED
+    digitalWrite(M5STICK_PIN_LED, HIGH);
+#endif /* defined(ENABLE_LED) */
+
+    sht30.readHumidity();;
+
+    delay(1900);
+#ifdef ENABLE_LED
+    digitalWrite(M5STICK_PIN_LED, LOW);
+#endif /* defined(ENABLE_LED) */
+    delay(100);
+  }
+
+  temp = (int16_t)(sht30.readTemperature() * 100);
+  hum  = (uint16_t)(sht30.readHumidity() * 100);
+  pres = (uint16_t)(bmp.readPressure() / 10);
+  vbat = (uint16_t)(M5.Axp.GetBatVoltage() * 100);
+  vbus = (uint16_t)(M5.Axp.GetVBusVoltage() * 100);
+}
+
+void
+loop()
+{
+  read_sensor();
+
+#ifdef ENABLE_LCD
+  M5.Lcd.setCursor(0, 0, 1);
+  M5.Lcd.printf("Temp: %4.1f'C Hum: %4.1f%%\n",
+                temp / 100.0, hum / 100.0);
+
+  M5.Lcd.printf("Air-pressure: %4.0fhPa\n",
+                pres / 10.0);
+
+  M5.Lcd.printf("VBat: %4.1fV VBus: %4.1fV\n",
+                vbat / 100.0, vbus / 100.0);
+#endif /* !defined(ENABLE_LCD) */
+
+  send_data();
+
+#ifdef ENABLE_LED
+  digitalWrite(M5STICK_PIN_LED, HIGH);
+#endif /* !defined(ENABLE_LED) */
+
+  seq++;
+
+  stop_comm();
+
+  into_sleep();
+}
